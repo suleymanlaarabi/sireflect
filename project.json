@@ -1,0 +1,8 @@
+{
+    "id": "sireflect",
+    "type": "package",
+    "value": {
+        "author": "Suleyman Laarabi",
+        "description": "Lightweight runtime reflection, serialization and deserialization library for modern C23."
+    }
+}
