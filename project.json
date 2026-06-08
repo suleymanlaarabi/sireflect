@@ -3,6 +3,17 @@
     "type": "package",
     "value": {
         "author": "Suleyman Laarabi",
-        "description": "Lightweight runtime reflection, serialization and deserialization library for modern C23."
+        "description": "Lightweight runtime reflection, serialization and deserialization library for modern C23.",
+        "clangd": true,
+        "amalgamate": [
+          {
+            "path": "distr"
+          }
+        ]
+    },
+    "lang.c": {
+      "c-standard": "c23",
+      "export-symbols": true,
+      "include": ["src"]
     }
 }
