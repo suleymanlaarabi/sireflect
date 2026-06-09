@@ -106,24 +106,24 @@ typedef struct {
     size_t align;
 } sireflect_struct_desc_t;
 
+/* Transforms a struct type name into its descriptor symbol name. */
 #define sireflect_desc(type) __##type##_desc
 
 /*
  * Declares a struct and stores its source field list for registration.
  * Use sireflect(reg, name) to register the generated metadata.
  */
-#define SIREFLECT_STRUCT(type_name, ...)                                                                \
-    typedef struct __VA_ARGS__ type_name;                                                               \
-    SIREFLECT_UNUSED static const sireflect_struct_desc_t sireflect_desc(type_name) = {                      \
-        .name = #type_name,                                                                             \
+#define SIREFLECT_STRUCT(type_name, ...)                                                           \
+    typedef struct __VA_ARGS__ type_name;                                                          \
+    SIREFLECT_UNUSED static const sireflect_struct_desc_t sireflect_desc(type_name) = {            \
+        .name = #type_name,                                                                        \
         .fields = #__VA_ARGS__,                                                                    \
-        .size = sizeof(type_name),                                                                      \
-        .align = _Alignof(type_name)                                                                    \
+        .size = sizeof(type_name),                                                                 \
+        .align = _Alignof(type_name)                                                               \
     };
 
 /* Registers a struct declared with SIREFLECT_STRUCT. */
-#define sireflect(reg, name)                                                                       \
-    sireflect_register_struct(reg, &sireflect_desc(name))
+#define sireflect(reg, name) sireflect_register_struct(reg, &sireflect_desc(name))
 
 /* Creates a reflection registry. */
 sireflect_registry_t *sireflect_registry_init(void);
