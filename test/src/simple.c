@@ -1,3 +1,4 @@
+#include "sireflect.h"
 #include <sireflect_test.h>
 
 #include <stddef.h>
@@ -37,7 +38,10 @@ typedef struct {
 
 static void register_unknown_type(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_register_struct(reg, "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr));
+    sireflect_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
+    );
     sireflect_registry_fini(reg);
 }
 
@@ -45,10 +49,9 @@ static void register_array_syntax(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_register_struct(
         reg,
-        "ArraySyntax",
-        "{ u8 a; f32 values[4]; }",
-        sizeof(ArraySyntax),
-        _Alignof(ArraySyntax)
+        &(
+            sireflect_struct_desc_t
+        ){ "ArraySyntax", "{ u8 a; f32 values[4]; }", sizeof(ArraySyntax), _Alignof(ArraySyntax) }
     );
     sireflect_registry_fini(reg);
 }
@@ -57,10 +60,9 @@ static void register_multi_decl(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_register_struct(
         reg,
-        "MultiDecl",
-        "{ u8 a, b; }",
-        sizeof(MultiDecl),
-        _Alignof(MultiDecl)
+        &(
+            sireflect_struct_desc_t
+        ){ "MultiDecl", "{ u8 a, b; }", sizeof(MultiDecl), _Alignof(MultiDecl) }
     );
     sireflect_registry_fini(reg);
 }
@@ -75,9 +77,18 @@ void simple_builtin_types(void) {
     test_uint(sireflect_type_size(reg, sireflect_type_by_name(reg, "short")), sizeof(short));
     test_uint(sireflect_type_size(reg, sireflect_type_by_name(reg, "int")), sizeof(int));
     test_uint(sireflect_type_size(reg, sireflect_type_by_name(reg, "long")), sizeof(long));
-    test_uint(sireflect_type_info(reg, sireflect_type_by_name(reg, "short"))->kind, sireflect_kind_short);
-    test_uint(sireflect_type_info(reg, sireflect_type_by_name(reg, "int"))->kind, sireflect_kind_int);
-    test_uint(sireflect_type_info(reg, sireflect_type_by_name(reg, "long"))->kind, sireflect_kind_long);
+    test_uint(
+        sireflect_type_info(reg, sireflect_type_by_name(reg, "short"))->kind,
+        sireflect_kind_short
+    );
+    test_uint(
+        sireflect_type_info(reg, sireflect_type_by_name(reg, "int"))->kind,
+        sireflect_kind_int
+    );
+    test_uint(
+        sireflect_type_info(reg, sireflect_type_by_name(reg, "long"))->kind,
+        sireflect_kind_long
+    );
 
     sireflect_registry_fini(reg);
 }

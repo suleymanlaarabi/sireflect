@@ -99,17 +99,31 @@ typedef struct {
     sireflect_fields_t fields;
 } sireflect_type_info_t;
 
+typedef struct {
+    const char *name;
+    const char *fields;
+    size_t size;
+    size_t align;
+} sireflect_struct_desc_t;
+
+#define sireflect_desc(type) __##type##_desc
+
 /*
  * Declares a struct and stores its source field list for registration.
  * Use sireflect(reg, name) to register the generated metadata.
  */
-#define SIREFLECT_STRUCT(name, ...)                                                                \
-    typedef struct __VA_ARGS__ name;                                                               \
-    SIREFLECT_UNUSED static const char *__##name##_fields = #__VA_ARGS__;
+#define SIREFLECT_STRUCT(type_name, ...)                                                                \
+    typedef struct __VA_ARGS__ type_name;                                                               \
+    SIREFLECT_UNUSED static const sireflect_struct_desc_t sireflect_desc(type_name) = {                      \
+        .name = #type_name,                                                                             \
+        .fields = #__VA_ARGS__,                                                                    \
+        .size = sizeof(type_name),                                                                      \
+        .align = _Alignof(type_name)                                                                    \
+    };
 
 /* Registers a struct declared with SIREFLECT_STRUCT. */
 #define sireflect(reg, name)                                                                       \
-    sireflect_register_struct(reg, #name, __##name##_fields, sizeof(name), _Alignof(name))
+    sireflect_register_struct(reg, &sireflect_desc(name))
 
 /* Creates a reflection registry. */
 sireflect_registry_t *sireflect_registry_init(void);
@@ -121,13 +135,8 @@ void sireflect_registry_fini(sireflect_registry_t *reg);
  * Registers a struct type from its textual field list.
  * Returns the existing handle if the same type was already registered.
  */
-sireflect_handle_t sireflect_register_struct(
-    sireflect_registry_t *reg,
-    const char *name,
-    const char *fields,
-    size_t size,
-    size_t align
-);
+sireflect_handle_t
+sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc);
 
 /* Finds a type handle by name, or SIREFLECT_INVALID_HANDLE if missing. */
 sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name);
