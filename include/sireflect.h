@@ -3,6 +3,7 @@
 
 /* This generated file contains includes for project dependencies. */
 #include "sireflect/bake_config.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -12,6 +13,19 @@
 #else
 #define SIREFLECT_UNUSED
 #endif
+
+/* Primitive aliases understood by the parser. */
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef float f32;
+typedef double f64;
+typedef void *ptr;
 
 /* Opaque registry that owns reflected type metadata. */
 typedef struct sireflect_registry_t sireflect_registry_t;
@@ -36,6 +50,9 @@ typedef enum {
     sireflect_kind_f64,
     sireflect_kind_bool,
     sireflect_kind_char,
+    sireflect_kind_short,
+    sireflect_kind_int,
+    sireflect_kind_long,
     sireflect_kind_ptr,
     sireflect_kind_struct
 } sireflect_kind_t;
