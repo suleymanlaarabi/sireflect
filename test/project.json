@@ -24,7 +24,10 @@
           "field_copy",
           "unknown_type_asserts",
           "array_syntax_asserts",
-          "multi_decl_asserts"
+          "multi_decl_asserts",
+          "unknown_type_diagnostic",
+          "array_syntax_diagnostic",
+          "multi_decl_diagnostic"
         ]
       }
     ]

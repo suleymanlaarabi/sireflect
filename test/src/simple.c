@@ -1,7 +1,11 @@
 #include "sireflect.h"
 #include <sireflect_test.h>
 
+#include <signal.h>
 #include <stddef.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 SIREFLECT_STRUCT(Empty, {});
 
@@ -65,6 +69,52 @@ static void register_multi_decl(void) {
         ){ "MultiDecl", "{ u8 a, b; }", sizeof(MultiDecl), _Alignof(MultiDecl) }
     );
     sireflect_registry_fini(reg);
+}
+
+static void expect_abort_message(
+    void (*function)(void),
+    const char *expected_a,
+    const char *expected_b,
+    const char *expected_c
+) {
+    int stderr_pipe[2];
+    test_int(pipe(stderr_pipe), 0);
+
+    pid_t child = fork();
+    test_assert(child >= 0);
+
+    if (child == 0) {
+        close(stderr_pipe[0]);
+        dup2(stderr_pipe[1], STDERR_FILENO);
+        close(stderr_pipe[1]);
+
+        function();
+        _exit(42);
+    }
+
+    close(stderr_pipe[1]);
+
+    char output[2048];
+    size_t len = 0;
+    ssize_t bytes_read = 0;
+
+    while ((bytes_read = read(stderr_pipe[0], output + len, sizeof(output) - len - 1)) > 0) {
+        len += (size_t)bytes_read;
+        if (len >= sizeof(output) - 1) {
+            break;
+        }
+    }
+
+    output[len] = '\0';
+    close(stderr_pipe[0]);
+
+    int status = 0;
+    test_int(waitpid(child, &status, 0), child);
+    test_assert(WIFSIGNALED(status));
+    test_int(WTERMSIG(status), SIGABRT);
+    test_not_null(strstr(output, expected_a));
+    test_not_null(strstr(output, expected_b));
+    test_not_null(strstr(output, expected_c));
 }
 
 void simple_builtin_types(void) {
@@ -215,4 +265,31 @@ void simple_array_syntax_asserts(void) {
 void simple_multi_decl_asserts(void) {
     test_expect_abort();
     register_multi_decl();
+}
+
+void simple_unknown_type_diagnostic(void) {
+    expect_abort_message(
+        register_unknown_type,
+        "unknown field type 'Missing'",
+        "struct 'Bad', field 'field'",
+        "line 1, column 3"
+    );
+}
+
+void simple_array_syntax_diagnostic(void) {
+    expect_abort_message(
+        register_array_syntax,
+        "unsupported syntax in reflected struct",
+        "struct 'ArraySyntax', field 'values'",
+        "actual unsupported token '['"
+    );
+}
+
+void simple_multi_decl_diagnostic(void) {
+    expect_abort_message(
+        register_multi_decl,
+        "unsupported syntax in reflected struct",
+        "struct 'MultiDecl', field 'a'",
+        "actual unsupported token ','"
+    );
 }

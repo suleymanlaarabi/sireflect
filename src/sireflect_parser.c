@@ -1,6 +1,7 @@
 #include "sireflect_parser.h"
 
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -10,6 +11,7 @@ typedef enum {
     sireflect_token_rbrace,
     sireflect_token_star,
     sireflect_token_semicolon,
+    sireflect_token_unknown,
     sireflect_token_end
 } sireflect_token_kind_t;
 
@@ -17,80 +19,246 @@ typedef struct {
     sireflect_token_kind_t kind;
     const char *start;
     size_t len;
+    size_t offset;
+    size_t line;
+    size_t column;
 } sireflect_token_t;
 
 typedef struct {
     const char *src;
+    const char *struct_name;
+    const char *field_start;
+    size_t field_len;
     size_t pos;
+    size_t line;
+    size_t column;
     sireflect_token_t current;
+    char message[512];
 } sireflect_parser_t;
 
 static inline int sireflect_is_ident_start(char c) { return isalpha((unsigned char)c) || c == '_'; }
 
 static inline int sireflect_is_ident_char(char c) { return isalnum((unsigned char)c) || c == '_'; }
 
+static inline const char *sireflect_token_kind_name(sireflect_token_kind_t kind) {
+    switch (kind) {
+    case sireflect_token_ident:
+        return "identifier";
+    case sireflect_token_lbrace:
+        return "'{'";
+    case sireflect_token_rbrace:
+        return "'}'";
+    case sireflect_token_star:
+        return "'*'";
+    case sireflect_token_semicolon:
+        return "';'";
+    case sireflect_token_unknown:
+        return "unsupported token";
+    case sireflect_token_end:
+        return "end of input";
+    }
+
+    return "unknown token";
+}
+
+static inline void
+sireflect_token_display(sireflect_token_t token, char *buffer, size_t buffer_size) {
+    if (token.kind == sireflect_token_end) {
+        snprintf(buffer, buffer_size, "end of input");
+        return;
+    }
+
+    if (token.len == 0) {
+        snprintf(buffer, buffer_size, "%s", sireflect_token_kind_name(token.kind));
+        return;
+    }
+
+    snprintf(
+        buffer,
+        buffer_size,
+        "%s '%.*s'",
+        sireflect_token_kind_name(token.kind),
+        (int)token.len,
+        token.start
+    );
+}
+
+static inline void
+sireflect_parser_context(sireflect_parser_t *parser, char *buffer, size_t buffer_size) {
+    if (parser->field_start != NULL) {
+        snprintf(
+            buffer,
+            buffer_size,
+            "struct '%s', field '%.*s'",
+            parser->struct_name != NULL ? parser->struct_name : "<unknown>",
+            (int)parser->field_len,
+            parser->field_start
+        );
+        return;
+    }
+
+    snprintf(
+        buffer,
+        buffer_size,
+        "struct '%s'",
+        parser->struct_name != NULL ? parser->struct_name : "<unknown>"
+    );
+}
+
+static inline void
+sireflect_parser_fail_at(sireflect_parser_t *parser, sireflect_token_t token, const char *message) {
+    char actual[96];
+    char context[160];
+
+    sireflect_token_display(token, actual, sizeof(actual));
+    sireflect_parser_context(parser, context, sizeof(context));
+
+    snprintf(
+        parser->message,
+        sizeof(parser->message),
+        "%s in %s at line %zu, column %zu: actual %s",
+        message,
+        context,
+        token.line,
+        token.column,
+        actual
+    );
+
+    sireflect_assert(false, parser->message);
+}
+
+static inline void sireflect_parser_unexpected(
+    sireflect_parser_t *parser,
+    sireflect_token_kind_t expected,
+    const char *context
+) {
+    char actual[96];
+    char parser_context[160];
+
+    sireflect_token_display(parser->current, actual, sizeof(actual));
+    sireflect_parser_context(parser, parser_context, sizeof(parser_context));
+
+    snprintf(
+        parser->message,
+        sizeof(parser->message),
+        "unexpected token while parsing %s in %s at line %zu, column %zu: expected %s, actual %s",
+        context,
+        parser_context,
+        parser->current.line,
+        parser->current.column,
+        sireflect_token_kind_name(expected),
+        actual
+    );
+
+    sireflect_assert(false, parser->message);
+}
+
+static inline void sireflect_parser_advance(sireflect_parser_t *parser) {
+    if (parser->src[parser->pos] == '\n') {
+        parser->line++;
+        parser->column = 1;
+    } else {
+        parser->column++;
+    }
+
+    parser->pos++;
+}
+
 static inline void sireflect_parser_next(sireflect_parser_t *parser) {
     const char *src = parser->src;
 
     while (isspace((unsigned char)src[parser->pos])) {
-        parser->pos++;
+        sireflect_parser_advance(parser);
     }
 
     const size_t start = parser->pos;
+    const size_t line = parser->line;
+    const size_t column = parser->column;
     const char c = src[start];
 
     if (c == '\0') {
-        parser->current = (sireflect_token_t){ sireflect_token_end, &src[start], 0 };
+        parser->current = (sireflect_token_t){ sireflect_token_end, &src[start], 0, start, line, column };
         return;
     }
 
     if (sireflect_is_ident_start(c)) {
-        parser->pos++;
+        sireflect_parser_advance(parser);
         while (sireflect_is_ident_char(src[parser->pos])) {
-            parser->pos++;
+            sireflect_parser_advance(parser);
         }
 
         parser->current = (sireflect_token_t){
             sireflect_token_ident,
             &src[start],
             parser->pos - start,
+            start,
+            line,
+            column,
         };
         return;
     }
 
-    parser->pos++;
+    sireflect_parser_advance(parser);
 
     switch (c) {
     case '{':
-        parser->current = (sireflect_token_t){ sireflect_token_lbrace, &src[start], 1 };
+        parser->current = (sireflect_token_t){ sireflect_token_lbrace, &src[start], 1, start, line, column };
         return;
     case '}':
-        parser->current = (sireflect_token_t){ sireflect_token_rbrace, &src[start], 1 };
+        parser->current = (sireflect_token_t){ sireflect_token_rbrace, &src[start], 1, start, line, column };
         return;
     case '*':
-        parser->current = (sireflect_token_t){ sireflect_token_star, &src[start], 1 };
+        parser->current = (sireflect_token_t){ sireflect_token_star, &src[start], 1, start, line, column };
         return;
     case ';':
-        parser->current = (sireflect_token_t){ sireflect_token_semicolon, &src[start], 1 };
+        parser->current =
+            (sireflect_token_t){ sireflect_token_semicolon, &src[start], 1, start, line, column };
         return;
     default:
-        sireflect_assert(false, "unsupported token in reflected struct");
+        parser->current = (sireflect_token_t){ sireflect_token_unknown, &src[start], 1, start, line, column };
+        sireflect_parser_fail_at(
+            parser,
+            parser->current,
+            "unsupported syntax in reflected struct; supported fields are '<type> <name>;' and '<type> *<name>;'"
+        );
     }
 }
 
-static inline void sireflect_parser_init(sireflect_parser_t *parser, const char *src) {
+static inline void
+sireflect_parser_init(sireflect_parser_t *parser, const char *struct_name, const char *src) {
     sireflect_assert(parser != NULL, "parser must not be NULL");
+    sireflect_assert(struct_name != NULL, "parser struct name must not be NULL");
     sireflect_assert(src != NULL, "parser source must not be NULL");
 
     parser->src = src;
+    parser->struct_name = struct_name;
+    parser->field_start = NULL;
+    parser->field_len = 0;
     parser->pos = 0;
+    parser->line = 1;
+    parser->column = 1;
+    parser->message[0] = '\0';
     sireflect_parser_next(parser);
 }
 
 static inline sireflect_token_t
-sireflect_expect(sireflect_parser_t *parser, sireflect_token_kind_t kind) {
+sireflect_expect(sireflect_parser_t *parser, sireflect_token_kind_t kind, const char *context) {
     sireflect_token_t token = parser->current;
-    sireflect_assert(token.kind == kind, "unexpected token in reflected struct");
+    if (token.kind != kind) {
+        sireflect_parser_unexpected(parser, kind, context);
+    }
+    sireflect_parser_next(parser);
+    return token;
+}
+
+static inline sireflect_token_t sireflect_expect_field_name(sireflect_parser_t *parser) {
+    sireflect_token_t token = parser->current;
+    if (token.kind != sireflect_token_ident) {
+        sireflect_parser_unexpected(parser, sireflect_token_ident, "field name");
+    }
+
+    parser->field_start = token.start;
+    parser->field_len = token.len;
     sireflect_parser_next(parser);
     return token;
 }
@@ -106,30 +274,33 @@ static inline char *sireflect_dup_range(const char *start, size_t len) {
 }
 
 static inline void sireflect_parse_field_shape(sireflect_parser_t *parser) {
-    sireflect_expect(parser, sireflect_token_ident);
+    parser->field_start = NULL;
+    parser->field_len = 0;
+
+    sireflect_expect(parser, sireflect_token_ident, "field type");
 
     if (parser->current.kind == sireflect_token_star) {
         sireflect_parser_next(parser);
     }
 
-    sireflect_expect(parser, sireflect_token_ident);
-    sireflect_expect(parser, sireflect_token_semicolon);
+    sireflect_expect_field_name(parser);
+    sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
 }
 
-static inline size_t sireflect_count_fields(const char *fields_src) {
+static inline size_t sireflect_count_fields(const char *struct_name, const char *fields_src) {
     sireflect_parser_t parser;
     size_t count = 0;
 
-    sireflect_parser_init(&parser, fields_src);
-    sireflect_expect(&parser, sireflect_token_lbrace);
+    sireflect_parser_init(&parser, struct_name, fields_src);
+    sireflect_expect(&parser, sireflect_token_lbrace, "struct field list start");
 
     while (parser.current.kind != sireflect_token_rbrace) {
         sireflect_parse_field_shape(&parser);
         count++;
     }
 
-    sireflect_expect(&parser, sireflect_token_rbrace);
-    sireflect_expect(&parser, sireflect_token_end);
+    sireflect_expect(&parser, sireflect_token_rbrace, "struct field list end");
+    sireflect_expect(&parser, sireflect_token_end, "trailing input after struct field list");
 
     return count;
 }
@@ -152,7 +323,10 @@ static inline void sireflect_parse_field(
     size_t *offset,
     size_t *max_align
 ) {
-    sireflect_token_t type_token = sireflect_expect(parser, sireflect_token_ident);
+    parser->field_start = NULL;
+    parser->field_len = 0;
+
+    sireflect_token_t type_token = sireflect_expect(parser, sireflect_token_ident, "field type");
     int is_pointer = 0;
 
     if (parser->current.kind == sireflect_token_star) {
@@ -160,12 +334,27 @@ static inline void sireflect_parse_field(
         sireflect_parser_next(parser);
     }
 
-    sireflect_token_t name_token = sireflect_expect(parser, sireflect_token_ident);
-    sireflect_expect(parser, sireflect_token_semicolon);
+    sireflect_token_t name_token = sireflect_expect_field_name(parser);
+    sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
 
     char *type_name = sireflect_dup_range(type_token.start, type_token.len);
     sireflect_handle_t field_type = sireflect_type_by_name(reg, type_name);
-    sireflect_assert(field_type != SIREFLECT_INVALID_HANDLE, "unknown field type");
+    if (field_type == SIREFLECT_INVALID_HANDLE) {
+        char context[160];
+
+        sireflect_parser_context(parser, context, sizeof(context));
+        snprintf(
+            parser->message,
+            sizeof(parser->message),
+            "unknown field type '%s' in %s at line %zu, column %zu; register the type before this struct or use a supported primitive alias",
+            type_name,
+            context,
+            type_token.line,
+            type_token.column
+        );
+        free(type_name);
+        sireflect_assert(false, parser->message);
+    }
 
     if (is_pointer) {
         field_type = sireflect_type_by_name(reg, "ptr");
@@ -191,6 +380,7 @@ static inline void sireflect_parse_field(
 
 void sireflect_parse_struct_fields(
     sireflect_registry_t *reg,
+    const char *struct_name,
     const char *fields_src,
     sireflect_field_info_t **out_fields,
     size_t *out_field_count,
@@ -198,11 +388,12 @@ void sireflect_parse_struct_fields(
     size_t struct_align
 ) {
     sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(struct_name != NULL, "struct name must not be NULL");
     sireflect_assert(fields_src != NULL, "field source must not be NULL");
     sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
     sireflect_assert(out_field_count != NULL, "output field count pointer must not be NULL");
 
-    const size_t field_count = sireflect_count_fields(fields_src);
+    const size_t field_count = sireflect_count_fields(struct_name, fields_src);
     sireflect_field_info_t *fields = NULL;
 
     if (field_count != 0) {
@@ -211,8 +402,8 @@ void sireflect_parse_struct_fields(
     }
 
     sireflect_parser_t parser;
-    sireflect_parser_init(&parser, fields_src);
-    sireflect_expect(&parser, sireflect_token_lbrace);
+    sireflect_parser_init(&parser, struct_name, fields_src);
+    sireflect_expect(&parser, sireflect_token_lbrace, "struct field list start");
 
     size_t offset = 0;
     size_t max_align = 1;
@@ -221,8 +412,8 @@ void sireflect_parse_struct_fields(
         sireflect_parse_field(reg, &parser, &fields[i], &offset, &max_align);
     }
 
-    sireflect_expect(&parser, sireflect_token_rbrace);
-    sireflect_expect(&parser, sireflect_token_end);
+    sireflect_expect(&parser, sireflect_token_rbrace, "struct field list end");
+    sireflect_expect(&parser, sireflect_token_end, "trailing input after struct field list");
 
     const size_t computed_size = sireflect_align_up(offset, struct_align);
     sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");

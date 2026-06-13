@@ -19,6 +19,9 @@ void simple_field_copy(void);
 void simple_unknown_type_asserts(void);
 void simple_array_syntax_asserts(void);
 void simple_multi_decl_asserts(void);
+void simple_unknown_type_diagnostic(void);
+void simple_array_syntax_diagnostic(void);
+void simple_multi_decl_diagnostic(void);
 
 bake_test_case simple_testcases[] = {
     {
@@ -60,6 +63,18 @@ bake_test_case simple_testcases[] = {
     {
         "multi_decl_asserts",
         simple_multi_decl_asserts
+    },
+    {
+        "unknown_type_diagnostic",
+        simple_unknown_type_diagnostic
+    },
+    {
+        "array_syntax_diagnostic",
+        simple_array_syntax_diagnostic
+    },
+    {
+        "multi_decl_diagnostic",
+        simple_multi_decl_diagnostic
     }
 };
 
@@ -69,7 +84,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        10,
+        13,
         simple_testcases
     }
 };

@@ -24,6 +24,7 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 
     sireflect_parse_struct_fields(
         reg,
+        desc->name,
         desc->fields,
         &parsed_fields,
         &field_count,
