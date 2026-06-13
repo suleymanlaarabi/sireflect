@@ -3,3 +3,7 @@
 .vscode
 gcov
 bin
+.clang-format
+.clang-tidy
+.clangd
+compile_flags.txt
