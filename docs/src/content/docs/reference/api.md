@@ -77,7 +77,8 @@ typedef enum {
     sireflect_kind_int,
     sireflect_kind_long,
     sireflect_kind_ptr,
-    sireflect_kind_struct
+    sireflect_kind_struct,
+    sireflect_kind_array
 } sireflect_kind_t;
 ```
 
@@ -92,6 +93,7 @@ invalid kind value.
 `sireflect_is_numeric` returns `true` for integer and floating-point kinds,
 including native C numeric kinds such as `char`, `short`, `int`, and `long`.
 It returns `false` for `bool`, `ptr`, `struct`, and invalid kind values.
+It also returns `false` for array types.
 
 ## Field metadata
 
@@ -127,11 +129,17 @@ typedef struct {
     size_t size;
     size_t align;
     sireflect_fields_t fields;
+    sireflect_handle_t element_type;
+    size_t element_count;
 } sireflect_type_info_t;
 ```
 
 Struct types have `kind == sireflect_kind_struct`. Non-struct types have an
 empty field list.
+
+Array types have `kind == sireflect_kind_array`, `element_type` set to the
+element type handle, and `element_count` set to the fixed array length. Other
+types use `SIREFLECT_INVALID_HANDLE` and `0` for those members.
 
 ## Struct declaration macros
 
@@ -217,10 +225,25 @@ const char *sireflect_type_name(
 bool sireflect_type_is_struct(
     const sireflect_type_info_t *info
 );
+
+bool sireflect_type_is_array(
+    const sireflect_type_info_t *info
+);
+
+sireflect_handle_t sireflect_type_element(
+    const sireflect_registry_t *reg,
+    sireflect_handle_t ref
+);
+
+size_t sireflect_type_element_count(
+    const sireflect_registry_t *reg,
+    sireflect_handle_t ref
+);
 ```
 
 These functions assert if `ref` is not a valid handle for `reg`.
-`sireflect_type_is_struct` asserts if `info` is `NULL`.
+`sireflect_type_is_struct` and `sireflect_type_is_array` assert if `info` is
+`NULL`. Array element queries assert if `ref` is not an array type.
 
 ## Field queries
 

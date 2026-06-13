@@ -34,10 +34,12 @@ printf("%s size=%zu align=%zu\n", info->name, info->size, info->align);
 | Member | Meaning |
 | --- | --- |
 | `name` | Reflected type name. |
-| `kind` | Built-in kind or `sireflect_kind_struct`. |
+| `kind` | Built-in kind, `sireflect_kind_struct`, or `sireflect_kind_array`. |
 | `size` | Size in bytes. |
 | `align` | Alignment in bytes. |
 | `fields` | Field list for struct types, empty for non-struct types. |
+| `element_type` | Element type handle for array types, otherwise `SIREFLECT_INVALID_HANDLE`. |
+| `element_count` | Element count for array types, otherwise `0`. |
 
 Convenience functions are also available:
 
@@ -46,6 +48,7 @@ const char *name = sireflect_type_name(reg, type);
 size_t size = sireflect_type_size(reg, type);
 const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
 bool is_struct = sireflect_type_is_struct(info);
+bool is_array = sireflect_type_is_array(info);
 ```
 
 ## Type kinds
@@ -70,9 +73,31 @@ sireflect_kind_int
 sireflect_kind_long
 sireflect_kind_ptr
 sireflect_kind_struct
+sireflect_kind_array
 ```
 
 For custom structs, `kind` is always `sireflect_kind_struct`.
+For fixed-size arrays, `kind` is `sireflect_kind_array`.
+
+Array types are created when registering fields such as:
+
+```c
+SIREFLECT_STRUCT(Path, {
+    Position points[8];
+});
+```
+
+The field's `type` points to an array type. Use the array helpers to inspect the
+element:
+
+```c
+const sireflect_type_info_t *field_type = sireflect_type_info(reg, field->type);
+
+if (sireflect_type_is_array(field_type)) {
+    sireflect_handle_t element = sireflect_type_element(reg, field->type);
+    size_t count = sireflect_type_element_count(reg, field->type);
+}
+```
 
 Use `sireflect_kind_name` when showing kinds in logs or UI:
 

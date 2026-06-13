@@ -110,15 +110,52 @@ void sireflect_parse_struct_fields(
 
 #endif
 
+#ifndef SIREFLECT_REGISTRY_H
+#define SIREFLECT_REGISTRY_H
+
+struct sireflect_registry_t {
+    sireflect_type_info_t *types;
+    size_t type_count;
+    size_t type_cap;
+};
+
+sireflect_handle_t sireflect_registry_add_type(
+    sireflect_registry_t *reg,
+    const char *name,
+    sireflect_kind_t kind,
+    size_t size,
+    size_t align,
+    sireflect_field_info_t *fields,
+    size_t field_count
+);
+
+sireflect_handle_t sireflect_registry_get_or_add_array_type(
+    sireflect_registry_t *reg,
+    sireflect_handle_t element_type,
+    size_t element_count
+);
+
+sireflect_type_info_t *
+sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle);
+
+const sireflect_type_info_t *
+sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_handle_t handle);
+
+#endif
+
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 typedef enum {
     sireflect_token_ident,
+    sireflect_token_integer,
     sireflect_token_lbrace,
     sireflect_token_rbrace,
+    sireflect_token_lbracket,
+    sireflect_token_rbracket,
     sireflect_token_star,
     sireflect_token_semicolon,
     sireflect_token_unknown,
@@ -154,10 +191,16 @@ static inline const char *sireflect_token_kind_name(sireflect_token_kind_t kind)
     switch (kind) {
     case sireflect_token_ident:
         return "identifier";
+    case sireflect_token_integer:
+        return "integer";
     case sireflect_token_lbrace:
         return "'{'";
     case sireflect_token_rbrace:
         return "'}'";
+    case sireflect_token_lbracket:
+        return "'['";
+    case sireflect_token_rbracket:
+        return "']'";
     case sireflect_token_star:
         return "'*'";
     case sireflect_token_semicolon:
@@ -308,6 +351,23 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         return;
     }
 
+    if (isdigit((unsigned char)c)) {
+        sireflect_parser_advance(parser);
+        while (isdigit((unsigned char)src[parser->pos])) {
+            sireflect_parser_advance(parser);
+        }
+
+        parser->current = (sireflect_token_t){
+            sireflect_token_integer,
+            &src[start],
+            parser->pos - start,
+            start,
+            line,
+            column,
+        };
+        return;
+    }
+
     sireflect_parser_advance(parser);
 
     switch (c) {
@@ -316,6 +376,14 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         return;
     case '}':
         parser->current = (sireflect_token_t){ sireflect_token_rbrace, &src[start], 1, start, line, column };
+        return;
+    case '[':
+        parser->current =
+            (sireflect_token_t){ sireflect_token_lbracket, &src[start], 1, start, line, column };
+        return;
+    case ']':
+        parser->current =
+            (sireflect_token_t){ sireflect_token_rbracket, &src[start], 1, start, line, column };
         return;
     case '*':
         parser->current = (sireflect_token_t){ sireflect_token_star, &src[start], 1, start, line, column };
@@ -329,7 +397,7 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         sireflect_parser_fail_at(
             parser,
             parser->current,
-            "unsupported syntax in reflected struct; supported fields are '<type> <name>;' and '<type> *<name>;'"
+            "unsupported syntax in reflected struct; supported fields are '<type> <name>;', '<type> *<name>;', and '<type> <name>[count];'"
         );
     }
 }
@@ -383,6 +451,25 @@ static inline char *sireflect_dup_range(const char *start, size_t len) {
     return result;
 }
 
+static inline size_t
+sireflect_parse_array_count(sireflect_parser_t *parser, sireflect_token_t token) {
+    size_t count = 0;
+
+    for (size_t i = 0; i < token.len; i++) {
+        const unsigned int digit = (unsigned int)(token.start[i] - '0');
+        if (count > (SIZE_MAX - digit) / 10) {
+            sireflect_parser_fail_at(parser, token, "array element count overflows size_t");
+        }
+        count = count * 10 + digit;
+    }
+
+    if (count == 0) {
+        sireflect_parser_fail_at(parser, token, "array element count must be greater than zero");
+    }
+
+    return count;
+}
+
 static inline void sireflect_parse_field_shape(sireflect_parser_t *parser) {
     parser->field_start = NULL;
     parser->field_len = 0;
@@ -394,6 +481,12 @@ static inline void sireflect_parse_field_shape(sireflect_parser_t *parser) {
     }
 
     sireflect_expect_field_name(parser);
+    if (parser->current.kind == sireflect_token_lbracket) {
+        sireflect_parser_next(parser);
+        sireflect_token_t count_token = sireflect_expect(parser, sireflect_token_integer, "array element count");
+        (void)sireflect_parse_array_count(parser, count_token);
+        sireflect_expect(parser, sireflect_token_rbracket, "array declarator end");
+    }
     sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
 }
 
@@ -438,6 +531,7 @@ static inline void sireflect_parse_field(
 
     sireflect_token_t type_token = sireflect_expect(parser, sireflect_token_ident, "field type");
     int is_pointer = 0;
+    size_t array_count = 0;
 
     if (parser->current.kind == sireflect_token_star) {
         is_pointer = 1;
@@ -445,6 +539,12 @@ static inline void sireflect_parse_field(
     }
 
     sireflect_token_t name_token = sireflect_expect_field_name(parser);
+    if (parser->current.kind == sireflect_token_lbracket) {
+        sireflect_parser_next(parser);
+        sireflect_token_t count_token = sireflect_expect(parser, sireflect_token_integer, "array element count");
+        array_count = sireflect_parse_array_count(parser, count_token);
+        sireflect_expect(parser, sireflect_token_rbracket, "array declarator end");
+    }
     sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
 
     char *type_name = sireflect_dup_range(type_token.start, type_token.len);
@@ -467,8 +567,13 @@ static inline void sireflect_parse_field(
     }
 
     if (is_pointer) {
+        sireflect_assert(array_count == 0, "arrays of pointers are not supported yet");
         field_type = sireflect_type_by_name(reg, "ptr");
         sireflect_assert(field_type != SIREFLECT_INVALID_HANDLE, "built-in ptr type is missing");
+    }
+
+    if (array_count != 0) {
+        field_type = sireflect_registry_get_or_add_array_type(reg, field_type, array_count);
     }
 
     const sireflect_type_info_t *type_info = sireflect_type_info(reg, field_type);
@@ -533,34 +638,8 @@ void sireflect_parse_struct_fields(
     *out_field_count = field_count;
 }
 
-#ifndef SIREFLECT_REGISTRY_H
-#define SIREFLECT_REGISTRY_H
-
-struct sireflect_registry_t {
-    sireflect_type_info_t *types;
-    size_t type_count;
-    size_t type_cap;
-};
-
-sireflect_handle_t sireflect_registry_add_type(
-    sireflect_registry_t *reg,
-    const char *name,
-    sireflect_kind_t kind,
-    size_t size,
-    size_t align,
-    sireflect_field_info_t *fields,
-    size_t field_count
-);
-
-sireflect_type_info_t *
-sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle);
-
-const sireflect_type_info_t *
-sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_handle_t handle);
-
-#endif
-
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -630,9 +709,57 @@ sireflect_handle_t sireflect_registry_add_type(
                 .fields = fields,
                 .field_count = field_count,
             },
+        .element_type = SIREFLECT_INVALID_HANDLE,
+        .element_count = 0,
     };
 
     return sireflect_handle_from_index(index);
+}
+
+sireflect_handle_t sireflect_registry_get_or_add_array_type(
+    sireflect_registry_t *reg,
+    sireflect_handle_t element_type,
+    size_t element_count
+) {
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(element_type != SIREFLECT_INVALID_HANDLE, "array element type must be valid");
+    sireflect_assert(element_count != 0, "array element count must not be zero");
+
+    for (size_t i = 0; i < reg->type_count; i++) {
+        const sireflect_type_info_t *type = &reg->types[i];
+        if (type->kind == sireflect_kind_array && type->element_type == element_type &&
+            type->element_count == element_count) {
+            return sireflect_handle_from_index(i);
+        }
+    }
+
+    const sireflect_type_info_t *element = sireflect_registry_const_type_at(reg, element_type);
+    sireflect_assert(element != NULL, "array element metadata must exist");
+    sireflect_assert(element->size <= SIZE_MAX / element_count, "array type size overflows size_t");
+
+    const int name_len = snprintf(NULL, 0, "%s[%zu]", element->name, element_count);
+    sireflect_assert(name_len > 0, "failed to format array type name");
+
+    char *name = malloc((size_t)name_len + 1);
+    sireflect_assert(name != NULL, "failed to allocate array type name");
+    snprintf(name, (size_t)name_len + 1, "%s[%zu]", element->name, element_count);
+
+    sireflect_handle_t array_type = sireflect_registry_add_type(
+        reg,
+        name,
+        sireflect_kind_array,
+        element->size * element_count,
+        element->align,
+        NULL,
+        0
+    );
+    free(name);
+
+    sireflect_type_info_t *array_info = sireflect_registry_type_at(reg, array_type);
+    array_info->element_type = element_type;
+    array_info->element_count = element_count;
+
+    return array_type;
 }
 
 #define add_type(name, kind)                                                                       \
@@ -803,6 +930,8 @@ const char *sireflect_kind_name(sireflect_kind_t kind) {
         return "ptr";
     case sireflect_kind_struct:
         return "struct";
+    case sireflect_kind_array:
+        return "array";
     }
 
     return "unknown";
@@ -828,6 +957,7 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
     case sireflect_kind_bool:
     case sireflect_kind_ptr:
     case sireflect_kind_struct:
+    case sireflect_kind_array:
         return false;
     }
 
@@ -856,5 +986,24 @@ const char *sireflect_type_name(const sireflect_registry_t *reg, sireflect_handl
 bool sireflect_type_is_struct(const sireflect_type_info_t *info) {
     sireflect_assert(info != NULL, "type metadata must not be NULL");
     return info->kind == sireflect_kind_struct;
+}
+
+bool sireflect_type_is_array(const sireflect_type_info_t *info) {
+    sireflect_assert(info != NULL, "type metadata must not be NULL");
+    return info->kind == sireflect_kind_array;
+}
+
+sireflect_handle_t
+sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
+    return type->element_type;
+}
+
+size_t
+sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
+    return type->element_count;
 }
 

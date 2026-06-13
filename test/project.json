@@ -25,11 +25,18 @@
           "kind_helpers",
           "type_is_struct_helper",
           "type_is_struct_asserts",
+          "array_field",
+          "struct_array_field",
+          "repeated_array_type",
           "unknown_type_asserts",
-          "array_syntax_asserts",
+          "empty_array_asserts",
+          "zero_array_asserts",
+          "nested_array_asserts",
           "multi_decl_asserts",
           "unknown_type_diagnostic",
-          "array_syntax_diagnostic",
+          "empty_array_diagnostic",
+          "zero_array_diagnostic",
+          "nested_array_diagnostic",
           "multi_decl_diagnostic"
         ]
       }

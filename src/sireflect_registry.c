@@ -1,6 +1,7 @@
 #include "sireflect_registry.h"
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -70,9 +71,57 @@ sireflect_handle_t sireflect_registry_add_type(
                 .fields = fields,
                 .field_count = field_count,
             },
+        .element_type = SIREFLECT_INVALID_HANDLE,
+        .element_count = 0,
     };
 
     return sireflect_handle_from_index(index);
+}
+
+sireflect_handle_t sireflect_registry_get_or_add_array_type(
+    sireflect_registry_t *reg,
+    sireflect_handle_t element_type,
+    size_t element_count
+) {
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(element_type != SIREFLECT_INVALID_HANDLE, "array element type must be valid");
+    sireflect_assert(element_count != 0, "array element count must not be zero");
+
+    for (size_t i = 0; i < reg->type_count; i++) {
+        const sireflect_type_info_t *type = &reg->types[i];
+        if (type->kind == sireflect_kind_array && type->element_type == element_type &&
+            type->element_count == element_count) {
+            return sireflect_handle_from_index(i);
+        }
+    }
+
+    const sireflect_type_info_t *element = sireflect_registry_const_type_at(reg, element_type);
+    sireflect_assert(element != NULL, "array element metadata must exist");
+    sireflect_assert(element->size <= SIZE_MAX / element_count, "array type size overflows size_t");
+
+    const int name_len = snprintf(NULL, 0, "%s[%zu]", element->name, element_count);
+    sireflect_assert(name_len > 0, "failed to format array type name");
+
+    char *name = malloc((size_t)name_len + 1);
+    sireflect_assert(name != NULL, "failed to allocate array type name");
+    snprintf(name, (size_t)name_len + 1, "%s[%zu]", element->name, element_count);
+
+    sireflect_handle_t array_type = sireflect_registry_add_type(
+        reg,
+        name,
+        sireflect_kind_array,
+        element->size * element_count,
+        element->align,
+        NULL,
+        0
+    );
+    free(name);
+
+    sireflect_type_info_t *array_info = sireflect_registry_type_at(reg, array_type);
+    array_info->element_type = element_type;
+    array_info->element_count = element_count;
+
+    return array_type;
 }
 
 #define add_type(name, kind)                                                                       \

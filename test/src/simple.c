@@ -30,10 +30,20 @@ SIREFLECT_STRUCT(NativeTypes, {
     double e;
 });
 
-typedef struct {
+SIREFLECT_STRUCT(ArraySyntax, {
     u8 a;
     f32 values[4];
-} ArraySyntax;
+});
+
+SIREFLECT_STRUCT(StructArray, {
+    u8 tag;
+    Position positions[2];
+});
+
+SIREFLECT_STRUCT(RepeatedArray, {
+    f32 a[4];
+    f32 b[4];
+});
 
 typedef struct {
     u8 a;
@@ -49,13 +59,29 @@ static void register_unknown_type(void) {
     sireflect_registry_fini(reg);
 }
 
-static void register_array_syntax(void) {
+static void register_empty_array(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_register_struct(
         reg,
-        &(
-            sireflect_struct_desc_t
-        ){ "ArraySyntax", "{ u8 a; f32 values[4]; }", sizeof(ArraySyntax), _Alignof(ArraySyntax) }
+        &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[]; }", sizeof(ptr), _Alignof(ptr) }
+    );
+    sireflect_registry_fini(reg);
+}
+
+static void register_zero_array(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[0]; }", sizeof(ptr), _Alignof(ptr) }
+    );
+    sireflect_registry_fini(reg);
+}
+
+static void register_nested_array(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[4][4]; }", sizeof(ptr), _Alignof(ptr) }
     );
     sireflect_registry_fini(reg);
 }
@@ -263,6 +289,7 @@ void simple_kind_helpers(void) {
     test_str(sireflect_kind_name(sireflect_kind_bool), "bool");
     test_str(sireflect_kind_name(sireflect_kind_ptr), "ptr");
     test_str(sireflect_kind_name(sireflect_kind_struct), "struct");
+    test_str(sireflect_kind_name(sireflect_kind_array), "array");
     test_str(sireflect_kind_name((sireflect_kind_t)999), "unknown");
 
     test_assert(sireflect_is_numeric(sireflect_kind_u8));
@@ -275,6 +302,7 @@ void simple_kind_helpers(void) {
     test_assert(!sireflect_is_numeric(sireflect_kind_bool));
     test_assert(!sireflect_is_numeric(sireflect_kind_ptr));
     test_assert(!sireflect_is_numeric(sireflect_kind_struct));
+    test_assert(!sireflect_is_numeric(sireflect_kind_array));
     test_assert(!sireflect_is_numeric((sireflect_kind_t)999));
 }
 
@@ -294,14 +322,86 @@ void simple_type_is_struct_asserts(void) {
     check_null_type_is_struct();
 }
 
+void simple_array_field(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, ArraySyntax);
+    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "values");
+
+    test_not_null((void *)field);
+    test_str(field->name, "values");
+    test_uint(field->offset, offsetof(ArraySyntax, values));
+    test_uint(field->size, sizeof(((ArraySyntax *)0)->values));
+    test_uint(field->align, _Alignof(f32));
+
+    const sireflect_type_info_t *array = sireflect_type_info(reg, field->type);
+    test_assert(sireflect_type_is_array(array));
+    test_uint(array->kind, sireflect_kind_array);
+    test_uint(array->element_type, sireflect_type_by_name(reg, "f32"));
+    test_uint(array->element_count, 4);
+    test_uint(sireflect_type_element(reg, field->type), sireflect_type_by_name(reg, "f32"));
+    test_uint(sireflect_type_element_count(reg, field->type), 4);
+    test_uint(array->size, sizeof(f32) * 4);
+    test_uint(array->align, _Alignof(f32));
+    test_str(array->name, "f32[4]");
+
+    ArraySyntax obj = { 0 };
+    test_ptr(sireflect_field_ptr(reg, type, &obj, "values"), &obj.values);
+
+    sireflect_registry_fini(reg);
+}
+
+void simple_struct_array_field(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t position = sireflect(reg, Position);
+    sireflect_handle_t type = sireflect(reg, StructArray);
+    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "positions");
+
+    test_not_null((void *)field);
+    test_uint(field->offset, offsetof(StructArray, positions));
+    test_uint(field->size, sizeof(((StructArray *)0)->positions));
+
+    const sireflect_type_info_t *array = sireflect_type_info(reg, field->type);
+    test_assert(sireflect_type_is_array(array));
+    test_uint(array->element_type, position);
+    test_uint(array->element_count, 2);
+    test_uint(array->size, sizeof(Position) * 2);
+    test_uint(array->align, _Alignof(Position));
+    test_str(array->name, "Position[2]");
+
+    sireflect_registry_fini(reg);
+}
+
+void simple_repeated_array_type(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, RepeatedArray);
+    const sireflect_field_info_t *a = sireflect_field_info(reg, type, "a");
+    const sireflect_field_info_t *b = sireflect_field_info(reg, type, "b");
+
+    test_not_null((void *)a);
+    test_not_null((void *)b);
+    test_uint(a->type, b->type);
+
+    sireflect_registry_fini(reg);
+}
+
 void simple_unknown_type_asserts(void) {
     test_expect_abort();
     register_unknown_type();
 }
 
-void simple_array_syntax_asserts(void) {
+void simple_empty_array_asserts(void) {
     test_expect_abort();
-    register_array_syntax();
+    register_empty_array();
+}
+
+void simple_zero_array_asserts(void) {
+    test_expect_abort();
+    register_zero_array();
+}
+
+void simple_nested_array_asserts(void) {
+    test_expect_abort();
+    register_nested_array();
 }
 
 void simple_multi_decl_asserts(void) {
@@ -318,12 +418,30 @@ void simple_unknown_type_diagnostic(void) {
     );
 }
 
-void simple_array_syntax_diagnostic(void) {
+void simple_empty_array_diagnostic(void) {
     expect_abort_message(
-        register_array_syntax,
-        "unsupported syntax in reflected struct",
-        "struct 'ArraySyntax', field 'values'",
-        "actual unsupported token '['"
+        register_empty_array,
+        "unexpected token while parsing array element count",
+        "struct 'BadArray', field 'values'",
+        "expected integer, actual ']' ']'"
+    );
+}
+
+void simple_zero_array_diagnostic(void) {
+    expect_abort_message(
+        register_zero_array,
+        "array element count must be greater than zero",
+        "struct 'BadArray', field 'values'",
+        "actual integer '0'"
+    );
+}
+
+void simple_nested_array_diagnostic(void) {
+    expect_abort_message(
+        register_nested_array,
+        "unexpected token while parsing field terminator",
+        "struct 'BadArray', field 'values'",
+        "expected ';', actual '[' '['"
     );
 }
 

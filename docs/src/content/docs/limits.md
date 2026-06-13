@@ -13,7 +13,8 @@ Sireflect does not support:
 | Syntax or feature | Reason |
 | --- | --- |
 | Multiple declarators | `f32 x, y;` hides multiple fields behind one type token. |
-| Arrays | Array length and element metadata are not represented yet. |
+| Multi-dimensional arrays | Nested array metadata is not represented yet. |
+| Arrays of pointers | Pointer fields do not keep pointed type metadata yet. |
 | `const` / `volatile` | Qualifiers are not stored in field metadata. |
 | `struct Name` spelling | The parser expects a single registered type name token. |
 | `unsigned int` | Multi-token type names are not supported. |

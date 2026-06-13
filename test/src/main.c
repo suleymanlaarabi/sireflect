@@ -19,11 +19,18 @@ void simple_field_copy(void);
 void simple_kind_helpers(void);
 void simple_type_is_struct_helper(void);
 void simple_type_is_struct_asserts(void);
+void simple_array_field(void);
+void simple_struct_array_field(void);
+void simple_repeated_array_type(void);
 void simple_unknown_type_asserts(void);
-void simple_array_syntax_asserts(void);
+void simple_empty_array_asserts(void);
+void simple_zero_array_asserts(void);
+void simple_nested_array_asserts(void);
 void simple_multi_decl_asserts(void);
 void simple_unknown_type_diagnostic(void);
-void simple_array_syntax_diagnostic(void);
+void simple_empty_array_diagnostic(void);
+void simple_zero_array_diagnostic(void);
+void simple_nested_array_diagnostic(void);
 void simple_multi_decl_diagnostic(void);
 
 bake_test_case simple_testcases[] = {
@@ -68,12 +75,32 @@ bake_test_case simple_testcases[] = {
         simple_type_is_struct_asserts
     },
     {
+        "array_field",
+        simple_array_field
+    },
+    {
+        "struct_array_field",
+        simple_struct_array_field
+    },
+    {
+        "repeated_array_type",
+        simple_repeated_array_type
+    },
+    {
         "unknown_type_asserts",
         simple_unknown_type_asserts
     },
     {
-        "array_syntax_asserts",
-        simple_array_syntax_asserts
+        "empty_array_asserts",
+        simple_empty_array_asserts
+    },
+    {
+        "zero_array_asserts",
+        simple_zero_array_asserts
+    },
+    {
+        "nested_array_asserts",
+        simple_nested_array_asserts
     },
     {
         "multi_decl_asserts",
@@ -84,8 +111,16 @@ bake_test_case simple_testcases[] = {
         simple_unknown_type_diagnostic
     },
     {
-        "array_syntax_diagnostic",
-        simple_array_syntax_diagnostic
+        "empty_array_diagnostic",
+        simple_empty_array_diagnostic
+    },
+    {
+        "zero_array_diagnostic",
+        simple_zero_array_diagnostic
+    },
+    {
+        "nested_array_diagnostic",
+        simple_nested_array_diagnostic
     },
     {
         "multi_decl_diagnostic",
@@ -99,7 +134,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        16,
+        23,
         simple_testcases
     }
 };

@@ -14,6 +14,7 @@ Fields must use one of these forms:
 ```c
 TYPE field;
 TYPE *field;
+TYPE field[N];
 ```
 
 Whitespace can appear around tokens:
@@ -26,12 +27,17 @@ SIREFLECT_STRUCT(Node, {
     Position *parent;
     Position* next;
     Position*next;
+    float values[4];
+    Position points[8];
 });
 ```
 
 For `TYPE *field`, Sireflect resolves `TYPE` to make sure it exists, but stores
 the field type as the built-in `ptr` type. The pointed type is not stored in the
 current API.
+
+For `TYPE field[N]`, Sireflect stores the field type as an array type. The array
+type records the element type handle and element count.
 
 ## Built-in type names
 
@@ -89,7 +95,8 @@ These declarations are not supported:
 
 ```c
 f32 x, y;
-f32 values[4];
+f32 matrix[4][4];
+Position *items[8];
 const f32 x;
 volatile f32 x;
 struct Position pos;
@@ -105,5 +112,6 @@ accepting declarations that would produce incomplete or incorrect metadata.
 Sireflect computes field offsets from the reflected field sizes and alignments,
 then validates the result against the real `sizeof(Type)` and `_Alignof(Type)`.
 
-This means packed structs, custom alignment attributes, bitfields, arrays, and
-other C layout features outside the supported subset are not accepted.
+This means packed structs, custom alignment attributes, bitfields,
+multi-dimensional arrays, and other C layout features outside the supported
+subset are not accepted.

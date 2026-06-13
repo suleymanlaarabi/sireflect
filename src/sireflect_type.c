@@ -36,6 +36,8 @@ const char *sireflect_kind_name(sireflect_kind_t kind) {
         return "ptr";
     case sireflect_kind_struct:
         return "struct";
+    case sireflect_kind_array:
+        return "array";
     }
 
     return "unknown";
@@ -61,6 +63,7 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
     case sireflect_kind_bool:
     case sireflect_kind_ptr:
     case sireflect_kind_struct:
+    case sireflect_kind_array:
         return false;
     }
 
@@ -89,4 +92,23 @@ const char *sireflect_type_name(const sireflect_registry_t *reg, sireflect_handl
 bool sireflect_type_is_struct(const sireflect_type_info_t *info) {
     sireflect_assert(info != NULL, "type metadata must not be NULL");
     return info->kind == sireflect_kind_struct;
+}
+
+bool sireflect_type_is_array(const sireflect_type_info_t *info) {
+    sireflect_assert(info != NULL, "type metadata must not be NULL");
+    return info->kind == sireflect_kind_array;
+}
+
+sireflect_handle_t
+sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
+    return type->element_type;
+}
+
+size_t
+sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
+    return type->element_count;
 }
