@@ -1,10 +1,9 @@
-#include <assert.h>
 #include <sireflect.h>
 #include <string.h>
 
 const sireflect_field_info_t *
 sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
-    assert(field != NULL);
+    sireflect_assert(field != NULL, "field name must not be NULL");
 
     const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
     for (size_t i = 0; i < fields->field_count; i++) {
@@ -19,14 +18,14 @@ sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, c
 sireflect_handle_t
 sireflect_field_type(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
     return info->type;
 }
 
 size_t
 sireflect_field_size(const sireflect_registry_t *reg, sireflect_handle_t ref, const char *field) {
     const sireflect_field_info_t *info = sireflect_field_info(reg, ref, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
     return info->size;
 }
 
@@ -36,10 +35,10 @@ const void *sireflect_field_ptr(
     const void *obj,
     const char *field
 ) {
-    assert(obj != NULL);
+    sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
 
     return (const unsigned char *)obj + info->offset;
 }
@@ -50,10 +49,10 @@ void *sireflect_field_mut_ptr(
     void *obj,
     const char *field
 ) {
-    assert(obj != NULL);
+    sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
 
     return (unsigned char *)obj + info->offset;
 }
@@ -65,7 +64,7 @@ int sireflect_field_copy(
     const char *field,
     const void *value
 ) {
-    assert(value != NULL);
+    sireflect_assert(value != NULL, "source value pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
     if (info == NULL) {

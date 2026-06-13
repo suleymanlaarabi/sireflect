@@ -1,16 +1,15 @@
 #include "sireflect_registry.h"
 
-#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 static char *sireflect_dup_cstr(const char *str) {
-    assert(str != NULL);
+    sireflect_assert(str != NULL, "string must not be NULL");
 
     const size_t len = strlen(str);
     char *result = malloc(len + 1);
-    assert(result != NULL);
+    sireflect_assert(result != NULL, "failed to allocate string");
 
     memcpy(result, str, len + 1);
     return result;
@@ -21,12 +20,12 @@ static sireflect_handle_t sireflect_handle_from_index(size_t index) {
 }
 
 static size_t sireflect_index_from_handle(sireflect_handle_t handle) {
-    assert(handle != SIREFLECT_INVALID_HANDLE);
+    sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "type handle must be valid");
     return (size_t)(handle - 1);
 }
 
 static void sireflect_registry_reserve(sireflect_registry_t *reg, size_t min_cap) {
-    assert(reg != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
 
     if (reg->type_cap >= min_cap) {
         return;
@@ -38,7 +37,7 @@ static void sireflect_registry_reserve(sireflect_registry_t *reg, size_t min_cap
     }
 
     sireflect_type_info_t *types = realloc(reg->types, new_cap * sizeof(*types));
-    assert(types != NULL);
+    sireflect_assert(types != NULL, "failed to allocate type metadata");
 
     reg->types = types;
     reg->type_cap = new_cap;
@@ -53,10 +52,10 @@ sireflect_handle_t sireflect_registry_add_type(
     sireflect_field_info_t *fields,
     size_t field_count
 ) {
-    assert(reg != NULL);
-    assert(name != NULL);
-    assert(size != 0 || kind == sireflect_kind_struct);
-    assert(align != 0);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(name != NULL, "type name must not be NULL");
+    sireflect_assert(size != 0 || kind == sireflect_kind_struct, "non-struct type size must not be zero");
+    sireflect_assert(align != 0, "type alignment must not be zero");
 
     sireflect_registry_reserve(reg, reg->type_count + 1);
 
@@ -112,7 +111,7 @@ static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
 
 sireflect_registry_t *sireflect_registry_init(void) {
     sireflect_registry_t *reg = calloc(1, sizeof(*reg));
-    assert(reg != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
 
     sireflect_register_builtin_types(reg);
     return reg;
@@ -140,8 +139,8 @@ void sireflect_registry_fini(sireflect_registry_t *reg) {
 }
 
 sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name) {
-    assert(reg != NULL);
-    assert(name != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(name != NULL, "type name must not be NULL");
 
     for (size_t i = 0; i < reg->type_count; i++) {
         if (strcmp(reg->types[i].name, name) == 0) {
@@ -154,10 +153,10 @@ sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const
 
 const sireflect_type_info_t *
 sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_handle_t handle) {
-    assert(reg != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
 
     const size_t index = sireflect_index_from_handle(handle);
-    assert(index < reg->type_count);
+    sireflect_assert(index < reg->type_count, "type handle is out of range");
 
     return &reg->types[index];
 }

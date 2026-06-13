@@ -1,10 +1,29 @@
 #include "sireflect.h"
-#include <assert.h>
+
+#ifndef NDEBUG
+#include <stdio.h>
+#include <stdlib.h>
+
+void sireflect_assert_fail(
+    const char *condition,
+    const char *message,
+    const char *file,
+    int line,
+    const char *function
+) {
+    fprintf(stderr, "sireflect assertion failed: %s\n", message != NULL ? message : condition);
+    fprintf(stderr, "  condition: %s\n", condition != NULL ? condition : "(unknown)");
+    fprintf(stderr, "  location: %s:%d\n", file != NULL ? file : "(unknown)", line);
+    fprintf(stderr, "  function: %s\n", function != NULL ? function : "(unknown)");
+    abort();
+}
+#endif
+
 #include <string.h>
 
 const sireflect_field_info_t *
 sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
-    assert(field != NULL);
+    sireflect_assert(field != NULL, "field name must not be NULL");
 
     const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
     for (size_t i = 0; i < fields->field_count; i++) {
@@ -19,14 +38,14 @@ sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, c
 sireflect_handle_t
 sireflect_field_type(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
     return info->type;
 }
 
 size_t
 sireflect_field_size(const sireflect_registry_t *reg, sireflect_handle_t ref, const char *field) {
     const sireflect_field_info_t *info = sireflect_field_info(reg, ref, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
     return info->size;
 }
 
@@ -36,10 +55,10 @@ const void *sireflect_field_ptr(
     const void *obj,
     const char *field
 ) {
-    assert(obj != NULL);
+    sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
 
     return (const unsigned char *)obj + info->offset;
 }
@@ -50,10 +69,10 @@ void *sireflect_field_mut_ptr(
     void *obj,
     const char *field
 ) {
-    assert(obj != NULL);
+    sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
-    assert(info != NULL);
+    sireflect_assert(info != NULL, "field must exist");
 
     return (unsigned char *)obj + info->offset;
 }
@@ -65,7 +84,7 @@ int sireflect_field_copy(
     const char *field,
     const void *value
 ) {
-    assert(value != NULL);
+    sireflect_assert(value != NULL, "source value pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
     if (info == NULL) {
@@ -90,7 +109,6 @@ void sireflect_parse_struct_fields(
 
 #endif
 
-#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -165,13 +183,13 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         parser->current = (sireflect_token_t){ sireflect_token_semicolon, &src[start], 1 };
         return;
     default:
-        assert(!"unsupported token in reflected struct");
+        sireflect_assert(false, "unsupported token in reflected struct");
     }
 }
 
 static inline void sireflect_parser_init(sireflect_parser_t *parser, const char *src) {
-    assert(parser != NULL);
-    assert(src != NULL);
+    sireflect_assert(parser != NULL, "parser must not be NULL");
+    sireflect_assert(src != NULL, "parser source must not be NULL");
 
     parser->src = src;
     parser->pos = 0;
@@ -181,14 +199,14 @@ static inline void sireflect_parser_init(sireflect_parser_t *parser, const char 
 static inline sireflect_token_t
 sireflect_expect(sireflect_parser_t *parser, sireflect_token_kind_t kind) {
     sireflect_token_t token = parser->current;
-    assert(token.kind == kind);
+    sireflect_assert(token.kind == kind, "unexpected token in reflected struct");
     sireflect_parser_next(parser);
     return token;
 }
 
 static inline char *sireflect_dup_range(const char *start, size_t len) {
     char *result = malloc(len + 1);
-    assert(result != NULL);
+    sireflect_assert(result != NULL, "failed to allocate parser string");
 
     memcpy(result, start, len);
     result[len] = '\0';
@@ -226,7 +244,7 @@ static inline size_t sireflect_count_fields(const char *fields_src) {
 }
 
 static inline size_t sireflect_align_up(size_t value, size_t align) {
-    assert(align != 0);
+    sireflect_assert(align != 0, "alignment must not be zero");
 
     const size_t remainder = value % align;
     if (remainder == 0) {
@@ -256,15 +274,15 @@ static inline void sireflect_parse_field(
 
     char *type_name = sireflect_dup_range(type_token.start, type_token.len);
     sireflect_handle_t field_type = sireflect_type_by_name(reg, type_name);
-    assert(field_type != SIREFLECT_INVALID_HANDLE);
+    sireflect_assert(field_type != SIREFLECT_INVALID_HANDLE, "unknown field type");
 
     if (is_pointer) {
         field_type = sireflect_type_by_name(reg, "ptr");
-        assert(field_type != SIREFLECT_INVALID_HANDLE);
+        sireflect_assert(field_type != SIREFLECT_INVALID_HANDLE, "built-in ptr type is missing");
     }
 
     const sireflect_type_info_t *type_info = sireflect_type_info(reg, field_type);
-    assert(type_info != NULL);
+    sireflect_assert(type_info != NULL, "field type metadata must exist");
 
     free(type_name);
 
@@ -288,17 +306,17 @@ void sireflect_parse_struct_fields(
     size_t struct_size,
     size_t struct_align
 ) {
-    assert(reg != NULL);
-    assert(fields_src != NULL);
-    assert(out_fields != NULL);
-    assert(out_field_count != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(fields_src != NULL, "field source must not be NULL");
+    sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
+    sireflect_assert(out_field_count != NULL, "output field count pointer must not be NULL");
 
     const size_t field_count = sireflect_count_fields(fields_src);
     sireflect_field_info_t *fields = NULL;
 
     if (field_count != 0) {
         fields = calloc(field_count, sizeof(*fields));
-        assert(fields != NULL);
+        sireflect_assert(fields != NULL, "failed to allocate field metadata");
     }
 
     sireflect_parser_t parser;
@@ -316,8 +334,8 @@ void sireflect_parse_struct_fields(
     sireflect_expect(&parser, sireflect_token_end);
 
     const size_t computed_size = sireflect_align_up(offset, struct_align);
-    assert(computed_size == struct_size);
-    assert(max_align <= struct_align);
+    sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");
+    sireflect_assert(max_align <= struct_align, "computed field alignment exceeds struct alignment");
 
     *out_fields = fields;
     *out_field_count = field_count;
@@ -350,17 +368,16 @@ sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_hand
 
 #endif
 
-#include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 static char *sireflect_dup_cstr(const char *str) {
-    assert(str != NULL);
+    sireflect_assert(str != NULL, "string must not be NULL");
 
     const size_t len = strlen(str);
     char *result = malloc(len + 1);
-    assert(result != NULL);
+    sireflect_assert(result != NULL, "failed to allocate string");
 
     memcpy(result, str, len + 1);
     return result;
@@ -371,12 +388,12 @@ static sireflect_handle_t sireflect_handle_from_index(size_t index) {
 }
 
 static size_t sireflect_index_from_handle(sireflect_handle_t handle) {
-    assert(handle != SIREFLECT_INVALID_HANDLE);
+    sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "type handle must be valid");
     return (size_t)(handle - 1);
 }
 
 static void sireflect_registry_reserve(sireflect_registry_t *reg, size_t min_cap) {
-    assert(reg != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
 
     if (reg->type_cap >= min_cap) {
         return;
@@ -388,7 +405,7 @@ static void sireflect_registry_reserve(sireflect_registry_t *reg, size_t min_cap
     }
 
     sireflect_type_info_t *types = realloc(reg->types, new_cap * sizeof(*types));
-    assert(types != NULL);
+    sireflect_assert(types != NULL, "failed to allocate type metadata");
 
     reg->types = types;
     reg->type_cap = new_cap;
@@ -403,10 +420,10 @@ sireflect_handle_t sireflect_registry_add_type(
     sireflect_field_info_t *fields,
     size_t field_count
 ) {
-    assert(reg != NULL);
-    assert(name != NULL);
-    assert(size != 0 || kind == sireflect_kind_struct);
-    assert(align != 0);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(name != NULL, "type name must not be NULL");
+    sireflect_assert(size != 0 || kind == sireflect_kind_struct, "non-struct type size must not be zero");
+    sireflect_assert(align != 0, "type alignment must not be zero");
 
     sireflect_registry_reserve(reg, reg->type_count + 1);
 
@@ -462,7 +479,7 @@ static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
 
 sireflect_registry_t *sireflect_registry_init(void) {
     sireflect_registry_t *reg = calloc(1, sizeof(*reg));
-    assert(reg != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
 
     sireflect_register_builtin_types(reg);
     return reg;
@@ -490,8 +507,8 @@ void sireflect_registry_fini(sireflect_registry_t *reg) {
 }
 
 sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name) {
-    assert(reg != NULL);
-    assert(name != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(name != NULL, "type name must not be NULL");
 
     for (size_t i = 0; i < reg->type_count; i++) {
         if (strcmp(reg->types[i].name, name) == 0) {
@@ -504,10 +521,10 @@ sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const
 
 const sireflect_type_info_t *
 sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_handle_t handle) {
-    assert(reg != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
 
     const size_t index = sireflect_index_from_handle(handle);
-    assert(index < reg->type_count);
+    sireflect_assert(index < reg->type_count, "type handle is out of range");
 
     return &reg->types[index];
 }
@@ -517,21 +534,20 @@ sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle)
     return (sireflect_type_info_t *)sireflect_registry_const_type_at(reg, handle);
 }
 
-#include <assert.h>
-
 sireflect_handle_t
 sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
-    assert(reg != NULL);
-    assert(desc->name != NULL);
-    assert(desc->fields != NULL);
-    assert(desc->align != 0);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(desc != NULL, "struct descriptor must not be NULL");
+    sireflect_assert(desc->name != NULL, "struct descriptor name must not be NULL");
+    sireflect_assert(desc->fields != NULL, "struct descriptor fields must not be NULL");
+    sireflect_assert(desc->align != 0, "struct descriptor alignment must not be zero");
 
     sireflect_handle_t existing = sireflect_type_by_name(reg, desc->name);
     if (existing != SIREFLECT_INVALID_HANDLE) {
         const sireflect_type_info_t *type = sireflect_type_info(reg, existing);
-        assert(type->kind == sireflect_kind_struct);
-        assert(type->size == desc->size);
-        assert(type->align == desc->align);
+        sireflect_assert(type->kind == sireflect_kind_struct, "existing type must be a struct");
+        sireflect_assert(type->size == desc->size, "existing struct size must match descriptor");
+        sireflect_assert(type->align == desc->align, "existing struct alignment must match descriptor");
         return existing;
     }
 

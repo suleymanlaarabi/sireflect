@@ -2,21 +2,20 @@
 #include "sireflect_parser.h"
 #include "sireflect_registry.h"
 
-#include <assert.h>
-
 sireflect_handle_t
 sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
-    assert(reg != NULL);
-    assert(desc->name != NULL);
-    assert(desc->fields != NULL);
-    assert(desc->align != 0);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(desc != NULL, "struct descriptor must not be NULL");
+    sireflect_assert(desc->name != NULL, "struct descriptor name must not be NULL");
+    sireflect_assert(desc->fields != NULL, "struct descriptor fields must not be NULL");
+    sireflect_assert(desc->align != 0, "struct descriptor alignment must not be zero");
 
     sireflect_handle_t existing = sireflect_type_by_name(reg, desc->name);
     if (existing != SIREFLECT_INVALID_HANDLE) {
         const sireflect_type_info_t *type = sireflect_type_info(reg, existing);
-        assert(type->kind == sireflect_kind_struct);
-        assert(type->size == desc->size);
-        assert(type->align == desc->align);
+        sireflect_assert(type->kind == sireflect_kind_struct, "existing type must be a struct");
+        sireflect_assert(type->size == desc->size, "existing struct size must match descriptor");
+        sireflect_assert(type->align == desc->align, "existing struct alignment must match descriptor");
         return existing;
     }
 

@@ -1,6 +1,5 @@
 #include "sireflect_parser.h"
 
-#include <assert.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,13 +74,13 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         parser->current = (sireflect_token_t){ sireflect_token_semicolon, &src[start], 1 };
         return;
     default:
-        assert(!"unsupported token in reflected struct");
+        sireflect_assert(false, "unsupported token in reflected struct");
     }
 }
 
 static inline void sireflect_parser_init(sireflect_parser_t *parser, const char *src) {
-    assert(parser != NULL);
-    assert(src != NULL);
+    sireflect_assert(parser != NULL, "parser must not be NULL");
+    sireflect_assert(src != NULL, "parser source must not be NULL");
 
     parser->src = src;
     parser->pos = 0;
@@ -91,14 +90,14 @@ static inline void sireflect_parser_init(sireflect_parser_t *parser, const char 
 static inline sireflect_token_t
 sireflect_expect(sireflect_parser_t *parser, sireflect_token_kind_t kind) {
     sireflect_token_t token = parser->current;
-    assert(token.kind == kind);
+    sireflect_assert(token.kind == kind, "unexpected token in reflected struct");
     sireflect_parser_next(parser);
     return token;
 }
 
 static inline char *sireflect_dup_range(const char *start, size_t len) {
     char *result = malloc(len + 1);
-    assert(result != NULL);
+    sireflect_assert(result != NULL, "failed to allocate parser string");
 
     memcpy(result, start, len);
     result[len] = '\0';
@@ -136,7 +135,7 @@ static inline size_t sireflect_count_fields(const char *fields_src) {
 }
 
 static inline size_t sireflect_align_up(size_t value, size_t align) {
-    assert(align != 0);
+    sireflect_assert(align != 0, "alignment must not be zero");
 
     const size_t remainder = value % align;
     if (remainder == 0) {
@@ -166,15 +165,15 @@ static inline void sireflect_parse_field(
 
     char *type_name = sireflect_dup_range(type_token.start, type_token.len);
     sireflect_handle_t field_type = sireflect_type_by_name(reg, type_name);
-    assert(field_type != SIREFLECT_INVALID_HANDLE);
+    sireflect_assert(field_type != SIREFLECT_INVALID_HANDLE, "unknown field type");
 
     if (is_pointer) {
         field_type = sireflect_type_by_name(reg, "ptr");
-        assert(field_type != SIREFLECT_INVALID_HANDLE);
+        sireflect_assert(field_type != SIREFLECT_INVALID_HANDLE, "built-in ptr type is missing");
     }
 
     const sireflect_type_info_t *type_info = sireflect_type_info(reg, field_type);
-    assert(type_info != NULL);
+    sireflect_assert(type_info != NULL, "field type metadata must exist");
 
     free(type_name);
 
@@ -198,17 +197,17 @@ void sireflect_parse_struct_fields(
     size_t struct_size,
     size_t struct_align
 ) {
-    assert(reg != NULL);
-    assert(fields_src != NULL);
-    assert(out_fields != NULL);
-    assert(out_field_count != NULL);
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(fields_src != NULL, "field source must not be NULL");
+    sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
+    sireflect_assert(out_field_count != NULL, "output field count pointer must not be NULL");
 
     const size_t field_count = sireflect_count_fields(fields_src);
     sireflect_field_info_t *fields = NULL;
 
     if (field_count != 0) {
         fields = calloc(field_count, sizeof(*fields));
-        assert(fields != NULL);
+        sireflect_assert(fields != NULL, "failed to allocate field metadata");
     }
 
     sireflect_parser_t parser;
@@ -226,8 +225,8 @@ void sireflect_parse_struct_fields(
     sireflect_expect(&parser, sireflect_token_end);
 
     const size_t computed_size = sireflect_align_up(offset, struct_align);
-    assert(computed_size == struct_size);
-    assert(max_align <= struct_align);
+    sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");
+    sireflect_assert(max_align <= struct_align, "computed field alignment exceeds struct alignment");
 
     *out_fields = fields;
     *out_field_count = field_count;

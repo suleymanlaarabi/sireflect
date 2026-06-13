@@ -40,6 +40,24 @@ typedef uint64_t sireflect_handle_t;
 /* Invalid type handle. */
 #define SIREFLECT_INVALID_HANDLE ((sireflect_handle_t)0)
 
+/* Reports a failed Sireflect debug assertion. */
+#ifndef NDEBUG
+void sireflect_assert_fail(
+    const char *condition,
+    const char *message,
+    const char *file,
+    int line,
+    const char *function
+);
+
+#define sireflect_assert(condition, message)                                                        \
+    ((condition)                                                                                    \
+         ? (void)0                                                                                  \
+         : sireflect_assert_fail(#condition, message, __FILE__, __LINE__, __func__))
+#else
+#define sireflect_assert(condition, message) ((void)0)
+#endif
+
 /* Built-in kind of a reflected type. */
 typedef enum {
     sireflect_kind_u8,
