@@ -1,0 +1,72 @@
+![SIREFLECT](docs/assets/banner.png)
+
+[![Documentation](https://img.shields.io/badge/docs-sireflect-blue?style=for-the-badge&color=blue)](https://suleymanlaarabi.github.io/sireflect/)
+[![actions](https://img.shields.io/github/actions/workflow/status/suleymanlaarabi/sireflect/docs.yml?branch=main&style=for-the-badge)](https://github.com/suleymanlaarabi/sireflect/actions?query=workflow%3ACI)
+
+`sireflect` is a small runtime reflection library for C structs. It gives you
+type handles, field metadata, field lookup, and raw field access without a
+compiler plugin or an external code generator.
+
+- Compact C API with zero runtime dependencies.
+- Struct reflection through `SIREFLECT_STRUCT` and a registry owned by the app.
+- Built-in metadata for primitive aliases such as `u8`, `i32`, `f32`, `bool`,
+  `ptr`, and native C numeric types.
+- Field metadata with name, type handle, byte offset, size, and alignment.
+- Debug diagnostics through `sireflect_assert`, compiled out when `NDEBUG` is
+  defined.
+
+```c
+#include "sireflect.h"
+
+#include <stdio.h>
+
+SIREFLECT_STRUCT(Position, {
+    f32 x;
+    f32 y;
+});
+
+int main(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    sireflect_handle_t position_type = sireflect(reg, Position);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, position_type);
+
+    for (size_t i = 0; i < fields->field_count; i++) {
+        const sireflect_field_info_t *field = &fields->fields[i];
+        const sireflect_type_info_t *type = sireflect_type_info(reg, field->type);
+
+        printf(
+            "%s: type=%s offset=%zu size=%zu\n",
+            field->name,
+            sireflect_kind_name(type->kind),
+            field->offset,
+            field->size
+        );
+    }
+
+    Position pos = { .x = 10.0f, .y = 20.0f };
+    f32 *x = sireflect_field_mut_ptr(reg, position_type, &pos, "x");
+    *x = 42.0f;
+
+    sireflect_registry_fini(reg);
+    return 0;
+}
+```
+
+## What it supports
+
+Sireflect intentionally supports a small declaration subset:
+
+```c
+TYPE field;
+TYPE *field;
+```
+
+Unsupported syntax fails during registration with a debug assertion. This keeps
+the reflected metadata aligned with the real C layout instead of guessing.
+
+## Documentation
+
+- [Documentation](https://suleymanlaarabi.github.io/sireflect/)
+- [Getting Started](https://suleymanlaarabi.github.io/sireflect/getting-started/)
+- [API Reference](https://suleymanlaarabi.github.io/sireflect/reference/api/)
