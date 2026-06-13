@@ -61,6 +61,14 @@
         ]
       },
       {
+        "id": "qualifiers",
+        "testcases": [
+          "qualified_scalar_fields",
+          "qualified_pointer_field",
+          "qualified_multiple_declarators"
+        ]
+      },
+      {
         "id": "parser_errors",
         "testcases": [
           "unknown_type_asserts",
@@ -70,13 +78,15 @@
           "missing_array_end_asserts",
           "nested_empty_array_asserts",
           "missing_declarator_asserts",
+          "post_pointer_qualifier_asserts",
           "unknown_type_diagnostic",
           "empty_array_diagnostic",
           "zero_array_diagnostic",
           "alpha_array_count_diagnostic",
           "missing_array_end_diagnostic",
           "nested_empty_array_diagnostic",
-          "missing_declarator_diagnostic"
+          "missing_declarator_diagnostic",
+          "post_pointer_qualifier_diagnostic"
         ]
       }
     ]

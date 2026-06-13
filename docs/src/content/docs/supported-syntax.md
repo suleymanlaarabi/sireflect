@@ -13,6 +13,9 @@ Fields must use one of these forms:
 
 ```c
 TYPE field;
+const TYPE field;
+volatile TYPE field;
+const volatile TYPE field;
 TYPE a, b;
 TYPE *field;
 TYPE *a, *b;
@@ -29,9 +32,13 @@ Whitespace can appear around tokens:
 SIREFLECT_STRUCT(Node, {
     f32 x;
     f64 y;
+    const f32 scale;
+    volatile int generation;
+    const volatile u32 flags;
     f32 u, v;
     Position pos;
     Position a, b;
+    const Position *parent_link;
     Position *parent;
     Position *previous, *next;
     Position* sibling;
@@ -46,6 +53,10 @@ SIREFLECT_STRUCT(Node, {
 
 Multiple declarators in one declaration share the same base type. Each
 declarator can have its own `*` marker and array dimensions.
+
+Leading `const` and `volatile` qualifiers are stored on each reflected field in
+`sireflect_field_info_t::qualifiers`. They do not change the reflected type
+handle, size, alignment, or offset.
 
 For `TYPE *field`, Sireflect stores the field type as a typed pointer. The
 pointed type can be inspected with `sireflect_type_pointee`. Use `ptr field;`
@@ -115,8 +126,7 @@ Unknown type names assert during registration.
 These declarations are not supported:
 
 ```c
-const f32 x;
-volatile f32 x;
+Position * const parent;
 struct Position pos;
 unsigned int flags;
 int bits : 3;

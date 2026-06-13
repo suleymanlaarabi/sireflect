@@ -193,6 +193,15 @@ static inline int sireflect_is_ident_start(char c) { return isalpha((unsigned ch
 
 static inline int sireflect_is_ident_char(char c) { return isalnum((unsigned char)c) || c == '_'; }
 
+static inline int sireflect_token_is_ident(sireflect_token_t token, const char *text) {
+    return token.kind == sireflect_token_ident && strlen(text) == token.len &&
+           strncmp(token.start, text, token.len) == 0;
+}
+
+static inline int sireflect_token_is_qualifier(sireflect_token_t token) {
+    return sireflect_token_is_ident(token, "const") || sireflect_token_is_ident(token, "volatile");
+}
+
 static inline const char *sireflect_token_kind_name(sireflect_token_kind_t kind) {
     switch (kind) {
     case sireflect_token_ident:
@@ -442,7 +451,7 @@ sireflect_expect(sireflect_parser_t *parser, sireflect_token_kind_t kind, const 
 
 static inline sireflect_token_t sireflect_expect_field_name(sireflect_parser_t *parser) {
     sireflect_token_t token = parser->current;
-    if (token.kind != sireflect_token_ident) {
+    if (token.kind != sireflect_token_ident || sireflect_token_is_qualifier(token)) {
         sireflect_parser_unexpected(parser, sireflect_token_ident, "field name");
     }
 
@@ -450,6 +459,26 @@ static inline sireflect_token_t sireflect_expect_field_name(sireflect_parser_t *
     parser->field_len = token.len;
     sireflect_parser_next(parser);
     return token;
+}
+
+static inline uint32_t sireflect_parse_qualifiers(sireflect_parser_t *parser) {
+    uint32_t qualifiers = 0;
+
+    for (;;) {
+        if (sireflect_token_is_ident(parser->current, "const")) {
+            qualifiers |= SIREFLECT_QUAL_CONST;
+            sireflect_parser_next(parser);
+            continue;
+        }
+
+        if (sireflect_token_is_ident(parser->current, "volatile")) {
+            qualifiers |= SIREFLECT_QUAL_VOLATILE;
+            sireflect_parser_next(parser);
+            continue;
+        }
+
+        return qualifiers;
+    }
 }
 
 static inline char *sireflect_dup_range(const char *start, size_t len) {
@@ -535,6 +564,7 @@ static inline void sireflect_parse_declarator_shape(sireflect_parser_t *parser) 
 static inline size_t sireflect_parse_declaration_shape(sireflect_parser_t *parser) {
     size_t count = 0;
 
+    (void)sireflect_parse_qualifiers(parser);
     sireflect_expect(parser, sireflect_token_ident, "field type");
 
     for (;;) {
@@ -613,6 +643,7 @@ static inline void sireflect_parse_declarator(
     sireflect_parser_t *parser,
     sireflect_field_info_t *field,
     sireflect_token_t type_token,
+    uint32_t qualifiers,
     size_t *offset,
     size_t *max_align
 ) {
@@ -650,6 +681,7 @@ static inline void sireflect_parse_declarator(
     field->size = type_info->size;
     field->align = type_info->align;
     field->offset = sireflect_align_up(*offset, field->align);
+    field->qualifiers = qualifiers;
 
     *offset = field->offset + field->size;
     if (field->align > *max_align) {
@@ -665,10 +697,19 @@ static inline size_t sireflect_parse_declaration(
     size_t *max_align
 ) {
     size_t count = 0;
+    uint32_t qualifiers = sireflect_parse_qualifiers(parser);
     sireflect_token_t type_token = sireflect_expect(parser, sireflect_token_ident, "field type");
 
     for (;;) {
-        sireflect_parse_declarator(reg, parser, &fields[count], type_token, offset, max_align);
+        sireflect_parse_declarator(
+            reg,
+            parser,
+            &fields[count],
+            type_token,
+            qualifiers,
+            offset,
+            max_align
+        );
         count++;
 
         if (parser->current.kind != sireflect_token_comma) {

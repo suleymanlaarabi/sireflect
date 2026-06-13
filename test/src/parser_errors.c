@@ -28,6 +28,10 @@ void parser_errors_missing_declarator_asserts(void) {
     sireflect_test_impl_missing_declarator_asserts();
 }
 
+void parser_errors_post_pointer_qualifier_asserts(void) {
+    sireflect_test_impl_post_pointer_qualifier_asserts();
+}
+
 void parser_errors_unknown_type_diagnostic(void) {
     sireflect_test_impl_unknown_type_diagnostic();
 }
@@ -54,4 +58,8 @@ void parser_errors_nested_empty_array_diagnostic(void) {
 
 void parser_errors_missing_declarator_diagnostic(void) {
     sireflect_test_impl_missing_declarator_diagnostic();
+}
+
+void parser_errors_post_pointer_qualifier_diagnostic(void) {
+    sireflect_test_impl_post_pointer_qualifier_diagnostic();
 }

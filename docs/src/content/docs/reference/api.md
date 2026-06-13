@@ -96,6 +96,17 @@ including native C numeric kinds such as `char`, `short`, `int`, and `long`.
 It returns `false` for `bool`, `ptr`, typed pointers, structs, arrays, and
 invalid kind values.
 
+## Field qualifiers
+
+```c
+typedef enum {
+    SIREFLECT_QUAL_CONST = 1u << 0,
+    SIREFLECT_QUAL_VOLATILE = 1u << 1
+} sireflect_qualifier_t;
+```
+
+Field metadata stores qualifiers as a bitmask.
+
 ## Field metadata
 
 ```c
@@ -105,6 +116,7 @@ typedef struct {
     size_t offset;
     size_t size;
     size_t align;
+    uint32_t qualifiers;
 } sireflect_field_info_t;
 ```
 

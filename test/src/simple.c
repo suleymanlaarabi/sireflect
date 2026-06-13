@@ -65,6 +65,16 @@ SIREFLECT_STRUCT(MultiplePointerDeclarators, { Position *parent, *next; });
 
 SIREFLECT_STRUCT(MultipleMixedDeclarators, { Position value, *ref; });
 
+SIREFLECT_STRUCT(QualifiedScalars, {
+    const f32 x;
+    volatile int y;
+    const volatile u32 flags;
+});
+
+SIREFLECT_STRUCT(QualifiedPointer, { const Position *parent; });
+
+SIREFLECT_STRUCT(QualifiedMultipleDeclarators, { const f32 x, y; });
+
 static void register_unknown_type(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_register_struct(
@@ -124,6 +134,21 @@ static void register_missing_declarator(void) {
     sireflect_register_struct(
         reg,
         &(sireflect_struct_desc_t){ "BadDecl", "{ f32 x, ; }", sizeof(ptr), _Alignof(ptr) }
+    );
+    sireflect_registry_fini(reg);
+}
+
+static void register_post_pointer_qualifier(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect(reg, Position);
+    sireflect_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){
+            "BadPointerQualifier",
+            "{ Position * const stable_parent; }",
+            sizeof(ptr),
+            _Alignof(ptr),
+        }
     );
     sireflect_registry_fini(reg);
 }
@@ -657,6 +682,74 @@ void sireflect_test_impl_multiple_mixed_declarators(void) {
     sireflect_registry_fini(reg);
 }
 
+void sireflect_test_impl_qualified_scalar_fields(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, QualifiedScalars);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+
+    test_uint(fields->field_count, 3);
+
+    test_str(fields->fields[0].name, "x");
+    test_uint(fields->fields[0].type, sireflect_type_by_name(reg, "f32"));
+    test_uint(fields->fields[0].offset, offsetof(QualifiedScalars, x));
+    test_uint(fields->fields[0].size, sizeof(f32));
+    test_uint(fields->fields[0].qualifiers, SIREFLECT_QUAL_CONST);
+
+    test_str(fields->fields[1].name, "y");
+    test_uint(fields->fields[1].type, sireflect_type_by_name(reg, "int"));
+    test_uint(fields->fields[1].offset, offsetof(QualifiedScalars, y));
+    test_uint(fields->fields[1].size, sizeof(int));
+    test_uint(fields->fields[1].qualifiers, SIREFLECT_QUAL_VOLATILE);
+
+    test_str(fields->fields[2].name, "flags");
+    test_uint(fields->fields[2].type, sireflect_type_by_name(reg, "u32"));
+    test_uint(fields->fields[2].offset, offsetof(QualifiedScalars, flags));
+    test_uint(fields->fields[2].size, sizeof(u32));
+    test_uint(
+        fields->fields[2].qualifiers,
+        SIREFLECT_QUAL_CONST | SIREFLECT_QUAL_VOLATILE
+    );
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_qualified_pointer_field(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t position = sireflect(reg, Position);
+    sireflect_handle_t type = sireflect(reg, QualifiedPointer);
+    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "parent");
+
+    test_not_null((void *)field);
+    test_uint(field->offset, offsetof(QualifiedPointer, parent));
+    test_uint(field->size, sizeof(((QualifiedPointer *)0)->parent));
+    test_uint(field->align, _Alignof(ptr));
+    test_uint(field->qualifiers, SIREFLECT_QUAL_CONST);
+
+    const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);
+    test_assert(sireflect_type_is_pointer(pointer));
+    test_uint(pointer->element_type, position);
+    test_str(pointer->name, "Position*");
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_qualified_multiple_declarators(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, QualifiedMultipleDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_handle_t f32_type = sireflect_type_by_name(reg, "f32");
+
+    test_uint(fields->field_count, 2);
+    test_uint(fields->fields[0].type, f32_type);
+    test_uint(fields->fields[0].offset, offsetof(QualifiedMultipleDeclarators, x));
+    test_uint(fields->fields[0].qualifiers, SIREFLECT_QUAL_CONST);
+    test_uint(fields->fields[1].type, f32_type);
+    test_uint(fields->fields[1].offset, offsetof(QualifiedMultipleDeclarators, y));
+    test_uint(fields->fields[1].qualifiers, SIREFLECT_QUAL_CONST);
+
+    sireflect_registry_fini(reg);
+}
+
 void sireflect_test_impl_unknown_type_asserts(void) {
     test_expect_abort();
     register_unknown_type();
@@ -690,6 +783,11 @@ void sireflect_test_impl_nested_empty_array_asserts(void) {
 void sireflect_test_impl_missing_declarator_asserts(void) {
     test_expect_abort();
     register_missing_declarator();
+}
+
+void sireflect_test_impl_post_pointer_qualifier_asserts(void) {
+    test_expect_abort();
+    register_post_pointer_qualifier();
 }
 
 void sireflect_test_impl_unknown_type_diagnostic(void) {
@@ -752,5 +850,14 @@ void sireflect_test_impl_missing_declarator_diagnostic(void) {
         "unexpected token while parsing field name",
         "struct 'BadDecl'",
         "actual ';' ';'"
+    );
+}
+
+void sireflect_test_impl_post_pointer_qualifier_diagnostic(void) {
+    expect_abort_message(
+        register_post_pointer_qualifier,
+        "unexpected token while parsing field name",
+        "struct 'BadPointerQualifier'",
+        "actual identifier 'const'"
     );
 }

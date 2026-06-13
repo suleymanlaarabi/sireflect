@@ -8,6 +8,23 @@ a registry. Valid handles start at `1`; `SIREFLECT_INVALID_HANDLE` is `0`.
 
 Handles are only meaningful with the registry that created them.
 
+## Field qualifiers
+
+`sireflect_field_info_t::qualifiers` stores leading declaration qualifiers as a
+bitmask:
+
+```c
+if ((field->qualifiers & SIREFLECT_QUAL_CONST) != 0) {
+    /* Field declaration had const before the type. */
+}
+
+if ((field->qualifiers & SIREFLECT_QUAL_VOLATILE) != 0) {
+    /* Field declaration had volatile before the type. */
+}
+```
+
+Qualifiers do not change the reflected type handle, size, alignment, or offset.
+
 ## Look up a type
 
 ```c

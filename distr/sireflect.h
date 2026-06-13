@@ -127,6 +127,12 @@ const char *sireflect_kind_name(sireflect_kind_t kind);
 /* Returns true for integer and floating-point kinds. */
 bool sireflect_is_numeric(sireflect_kind_t kind);
 
+/* Qualifier flags stored on reflected fields. */
+typedef enum {
+    SIREFLECT_QUAL_CONST = 1u << 0,
+    SIREFLECT_QUAL_VOLATILE = 1u << 1
+} sireflect_qualifier_t;
+
 /* Metadata for a single reflected field. */
 typedef struct {
     /* Field name as written in the reflected struct. */
@@ -143,6 +149,9 @@ typedef struct {
 
     /* Alignment of the field in bytes. */
     size_t align;
+
+    /* Bitmask of sireflect_qualifier_t flags. */
+    uint32_t qualifiers;
 } sireflect_field_info_t;
 
 /* Borrowed view over the fields of a reflected type. */

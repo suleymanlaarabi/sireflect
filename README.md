@@ -13,7 +13,8 @@ compiler plugin or an external code generator.
   `ptr`, and native C numeric types.
 - Fixed-size arrays such as `float values[4]`, `Position points[8]`,
   `Position *items[8]`, and `f32 matrix[4][4]`.
-- Field metadata with name, type handle, byte offset, size, and alignment.
+- Field metadata with name, type handle, byte offset, size, alignment, and
+  leading `const` / `volatile` qualifiers.
 - Debug diagnostics through `sireflect_assert`, compiled out when `NDEBUG` is
   defined.
 
@@ -61,6 +62,8 @@ Sireflect intentionally supports a small declaration subset:
 
 ```c
 TYPE field;
+const TYPE field;
+volatile TYPE field;
 TYPE a, b;
 TYPE *field;
 TYPE *a, *b;
