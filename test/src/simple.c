@@ -55,10 +55,15 @@ SIREFLECT_STRUCT(Matrix, { f32 matrix[4][4]; });
 
 SIREFLECT_STRUCT(PointerMatrix, { Position *items[2][3]; });
 
-typedef struct {
-    u8 a;
-    u8 b;
-} MultiDecl;
+SIREFLECT_STRUCT(MultiplePrimitiveDeclarators, { f32 x, y; });
+
+SIREFLECT_STRUCT(MultipleStructDeclarators, { Position a, b; });
+
+SIREFLECT_STRUCT(MultipleArrayDeclarators, { int values[4], more[8]; });
+
+SIREFLECT_STRUCT(MultiplePointerDeclarators, { Position *parent, *next; });
+
+SIREFLECT_STRUCT(MultipleMixedDeclarators, { Position value, *ref; });
 
 static void register_unknown_type(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
@@ -114,13 +119,11 @@ static void register_nested_empty_array(void) {
     sireflect_registry_fini(reg);
 }
 
-static void register_multi_decl(void) {
+static void register_missing_declarator(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_register_struct(
         reg,
-        &(
-            sireflect_struct_desc_t
-        ){ "MultiDecl", "{ u8 a, b; }", sizeof(MultiDecl), _Alignof(MultiDecl) }
+        &(sireflect_struct_desc_t){ "BadDecl", "{ f32 x, ; }", sizeof(ptr), _Alignof(ptr) }
     );
     sireflect_registry_fini(reg);
 }
@@ -543,6 +546,117 @@ void sireflect_test_impl_pointer_matrix_field(void) {
     sireflect_registry_fini(reg);
 }
 
+void sireflect_test_impl_multiple_primitive_declarators(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, MultiplePrimitiveDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_handle_t f32_type = sireflect_type_by_name(reg, "f32");
+
+    test_uint(fields->field_count, 2);
+    test_str(fields->fields[0].name, "x");
+    test_uint(fields->fields[0].type, f32_type);
+    test_uint(fields->fields[0].offset, offsetof(MultiplePrimitiveDeclarators, x));
+    test_uint(fields->fields[0].size, sizeof(f32));
+    test_str(fields->fields[1].name, "y");
+    test_uint(fields->fields[1].type, f32_type);
+    test_uint(fields->fields[1].offset, offsetof(MultiplePrimitiveDeclarators, y));
+    test_uint(fields->fields[1].size, sizeof(f32));
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_multiple_struct_declarators(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t position = sireflect(reg, Position);
+    sireflect_handle_t type = sireflect(reg, MultipleStructDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+
+    test_uint(fields->field_count, 2);
+    test_str(fields->fields[0].name, "a");
+    test_uint(fields->fields[0].type, position);
+    test_uint(fields->fields[0].offset, offsetof(MultipleStructDeclarators, a));
+    test_uint(fields->fields[0].size, sizeof(Position));
+    test_str(fields->fields[1].name, "b");
+    test_uint(fields->fields[1].type, position);
+    test_uint(fields->fields[1].offset, offsetof(MultipleStructDeclarators, b));
+    test_uint(fields->fields[1].size, sizeof(Position));
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_multiple_array_declarators(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, MultipleArrayDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+
+    test_uint(fields->field_count, 2);
+    test_str(fields->fields[0].name, "values");
+    test_uint(fields->fields[0].offset, offsetof(MultipleArrayDeclarators, values));
+    test_uint(fields->fields[0].size, sizeof(((MultipleArrayDeclarators *)0)->values));
+    test_str(fields->fields[1].name, "more");
+    test_uint(fields->fields[1].offset, offsetof(MultipleArrayDeclarators, more));
+    test_uint(fields->fields[1].size, sizeof(((MultipleArrayDeclarators *)0)->more));
+
+    const sireflect_type_info_t *values = sireflect_type_info(reg, fields->fields[0].type);
+    const sireflect_type_info_t *more = sireflect_type_info(reg, fields->fields[1].type);
+    test_assert(sireflect_type_is_array(values));
+    test_assert(sireflect_type_is_array(more));
+    test_uint(values->element_type, sireflect_type_by_name(reg, "int"));
+    test_uint(values->element_count, 4);
+    test_str(values->name, "int[4]");
+    test_uint(more->element_type, sireflect_type_by_name(reg, "int"));
+    test_uint(more->element_count, 8);
+    test_str(more->name, "int[8]");
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_multiple_pointer_declarators(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t position = sireflect(reg, Position);
+    sireflect_handle_t type = sireflect(reg, MultiplePointerDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+
+    test_uint(fields->field_count, 2);
+    test_str(fields->fields[0].name, "parent");
+    test_uint(fields->fields[0].offset, offsetof(MultiplePointerDeclarators, parent));
+    test_uint(fields->fields[0].size, sizeof(((MultiplePointerDeclarators *)0)->parent));
+    test_str(fields->fields[1].name, "next");
+    test_uint(fields->fields[1].offset, offsetof(MultiplePointerDeclarators, next));
+    test_uint(fields->fields[1].size, sizeof(((MultiplePointerDeclarators *)0)->next));
+    test_uint(fields->fields[0].type, fields->fields[1].type);
+
+    const sireflect_type_info_t *pointer = sireflect_type_info(reg, fields->fields[0].type);
+    test_assert(sireflect_type_is_pointer(pointer));
+    test_uint(pointer->element_type, position);
+    test_str(pointer->name, "Position*");
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_multiple_mixed_declarators(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t position = sireflect(reg, Position);
+    sireflect_handle_t type = sireflect(reg, MultipleMixedDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+
+    test_uint(fields->field_count, 2);
+    test_str(fields->fields[0].name, "value");
+    test_uint(fields->fields[0].type, position);
+    test_uint(fields->fields[0].offset, offsetof(MultipleMixedDeclarators, value));
+    test_uint(fields->fields[0].size, sizeof(Position));
+    test_str(fields->fields[1].name, "ref");
+    test_uint(fields->fields[1].offset, offsetof(MultipleMixedDeclarators, ref));
+    test_uint(fields->fields[1].size, sizeof(((MultipleMixedDeclarators *)0)->ref));
+
+    const sireflect_type_info_t *pointer = sireflect_type_info(reg, fields->fields[1].type);
+    test_assert(sireflect_type_is_pointer(pointer));
+    test_uint(pointer->element_type, position);
+    test_str(pointer->name, "Position*");
+
+    sireflect_registry_fini(reg);
+}
+
 void sireflect_test_impl_unknown_type_asserts(void) {
     test_expect_abort();
     register_unknown_type();
@@ -573,9 +687,9 @@ void sireflect_test_impl_nested_empty_array_asserts(void) {
     register_nested_empty_array();
 }
 
-void sireflect_test_impl_multi_decl_asserts(void) {
+void sireflect_test_impl_missing_declarator_asserts(void) {
     test_expect_abort();
-    register_multi_decl();
+    register_missing_declarator();
 }
 
 void sireflect_test_impl_unknown_type_diagnostic(void) {
@@ -632,11 +746,11 @@ void sireflect_test_impl_nested_empty_array_diagnostic(void) {
     );
 }
 
-void sireflect_test_impl_multi_decl_diagnostic(void) {
+void sireflect_test_impl_missing_declarator_diagnostic(void) {
     expect_abort_message(
-        register_multi_decl,
-        "unsupported syntax in reflected struct",
-        "struct 'MultiDecl', field 'a'",
-        "actual unsupported token ','"
+        register_missing_declarator,
+        "unexpected token while parsing field name",
+        "struct 'BadDecl'",
+        "actual ';' ';'"
     );
 }

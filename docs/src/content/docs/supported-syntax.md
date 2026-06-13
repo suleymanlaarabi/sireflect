@@ -13,8 +13,12 @@ Fields must use one of these forms:
 
 ```c
 TYPE field;
+TYPE a, b;
 TYPE *field;
+TYPE *a, *b;
+TYPE a, *b;
 TYPE field[N];
+TYPE a[N], b[M];
 TYPE field[N][M];
 TYPE *field[N];
 ```
@@ -25,16 +29,23 @@ Whitespace can appear around tokens:
 SIREFLECT_STRUCT(Node, {
     f32 x;
     f64 y;
+    f32 u, v;
     Position pos;
+    Position a, b;
     Position *parent;
-    Position* next;
-    Position*next;
+    Position *previous, *next;
+    Position* sibling;
+    Position*child;
     float values[4];
+    int values_a[4], values_b[8];
     Position points[8];
     Position *items[8];
     f32 matrix[4][4];
 });
 ```
+
+Multiple declarators in one declaration share the same base type. Each
+declarator can have its own `*` marker and array dimensions.
 
 For `TYPE *field`, Sireflect stores the field type as a typed pointer. The
 pointed type can be inspected with `sireflect_type_pointee`. Use `ptr field;`
@@ -104,7 +115,6 @@ Unknown type names assert during registration.
 These declarations are not supported:
 
 ```c
-f32 x, y;
 const f32 x;
 volatile f32 x;
 struct Position pos;

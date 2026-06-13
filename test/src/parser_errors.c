@@ -24,8 +24,8 @@ void parser_errors_nested_empty_array_asserts(void) {
     sireflect_test_impl_nested_empty_array_asserts();
 }
 
-void parser_errors_multi_decl_asserts(void) {
-    sireflect_test_impl_multi_decl_asserts();
+void parser_errors_missing_declarator_asserts(void) {
+    sireflect_test_impl_missing_declarator_asserts();
 }
 
 void parser_errors_unknown_type_diagnostic(void) {
@@ -52,6 +52,6 @@ void parser_errors_nested_empty_array_diagnostic(void) {
     sireflect_test_impl_nested_empty_array_diagnostic();
 }
 
-void parser_errors_multi_decl_diagnostic(void) {
-    sireflect_test_impl_multi_decl_diagnostic();
+void parser_errors_missing_declarator_diagnostic(void) {
+    sireflect_test_impl_missing_declarator_diagnostic();
 }

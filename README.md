@@ -61,8 +61,12 @@ Sireflect intentionally supports a small declaration subset:
 
 ```c
 TYPE field;
+TYPE a, b;
 TYPE *field;
+TYPE *a, *b;
+TYPE a, *b;
 TYPE field[N];
+TYPE a[N], b[M];
 TYPE field[N][M];
 TYPE *field[N];
 ```

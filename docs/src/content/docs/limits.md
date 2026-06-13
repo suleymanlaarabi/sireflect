@@ -12,7 +12,6 @@ Sireflect does not support:
 
 | Syntax or feature | Reason |
 | --- | --- |
-| Multiple declarators | `f32 x, y;` hides multiple fields behind one type token. |
 | `const` / `volatile` | Qualifiers are not stored in field metadata. |
 | `struct Name` spelling | The parser expects a single registered type name token. |
 | `unsigned int` | Multi-token type names are not supported. |

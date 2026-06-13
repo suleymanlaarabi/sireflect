@@ -162,6 +162,7 @@ typedef enum {
     sireflect_token_lbracket,
     sireflect_token_rbracket,
     sireflect_token_star,
+    sireflect_token_comma,
     sireflect_token_semicolon,
     sireflect_token_unknown,
     sireflect_token_end
@@ -208,6 +209,8 @@ static inline const char *sireflect_token_kind_name(sireflect_token_kind_t kind)
         return "']'";
     case sireflect_token_star:
         return "'*'";
+    case sireflect_token_comma:
+        return "','";
     case sireflect_token_semicolon:
         return "';'";
     case sireflect_token_unknown:
@@ -393,6 +396,9 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
     case '*':
         parser->current = (sireflect_token_t){ sireflect_token_star, &src[start], 1, start, line, column };
         return;
+    case ',':
+        parser->current = (sireflect_token_t){ sireflect_token_comma, &src[start], 1, start, line, column };
+        return;
     case ';':
         parser->current =
             (sireflect_token_t){ sireflect_token_semicolon, &src[start], 1, start, line, column };
@@ -402,7 +408,7 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         sireflect_parser_fail_at(
             parser,
             parser->current,
-            "unsupported syntax in reflected struct; supported fields are '<type> <name>;', '<type> *<name>;', '<type> <name>[N][M];', and '<type> *<name>[N];'"
+            "unsupported syntax in reflected struct; supported fields are '<type> <name>;', '<type> <name>, <name>;', '<type> *<name>;', '<type> <name>[N][M];', and '<type> *<name>[N];'"
         );
     }
 }
@@ -512,13 +518,11 @@ sireflect_parse_array_dimensions(sireflect_parser_t *parser, size_t *counts, siz
     return count;
 }
 
-static inline void sireflect_parse_field_shape(sireflect_parser_t *parser) {
+static inline void sireflect_parse_declarator_shape(sireflect_parser_t *parser) {
     size_t counts[SIREFLECT_MAX_ARRAY_DIMS];
 
     parser->field_start = NULL;
     parser->field_len = 0;
-
-    sireflect_expect(parser, sireflect_token_ident, "field type");
 
     if (parser->current.kind == sireflect_token_star) {
         sireflect_parser_next(parser);
@@ -526,7 +530,26 @@ static inline void sireflect_parse_field_shape(sireflect_parser_t *parser) {
 
     sireflect_expect_field_name(parser);
     (void)sireflect_parse_array_dimensions(parser, counts, SIREFLECT_MAX_ARRAY_DIMS);
+}
+
+static inline size_t sireflect_parse_declaration_shape(sireflect_parser_t *parser) {
+    size_t count = 0;
+
+    sireflect_expect(parser, sireflect_token_ident, "field type");
+
+    for (;;) {
+        sireflect_parse_declarator_shape(parser);
+        count++;
+
+        if (parser->current.kind != sireflect_token_comma) {
+            break;
+        }
+
+        sireflect_parser_next(parser);
+    }
+
     sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
+    return count;
 }
 
 static inline size_t sireflect_count_fields(const char *struct_name, const char *fields_src) {
@@ -537,8 +560,7 @@ static inline size_t sireflect_count_fields(const char *struct_name, const char 
     sireflect_expect(&parser, sireflect_token_lbrace, "struct field list start");
 
     while (parser.current.kind != sireflect_token_rbrace) {
-        sireflect_parse_field_shape(&parser);
-        count++;
+        count += sireflect_parse_declaration_shape(&parser);
     }
 
     sireflect_expect(&parser, sireflect_token_rbrace, "struct field list end");
@@ -558,31 +580,11 @@ static inline size_t sireflect_align_up(size_t value, size_t align) {
     return value + align - remainder;
 }
 
-static inline void sireflect_parse_field(
+static inline sireflect_handle_t sireflect_resolve_field_type(
     sireflect_registry_t *reg,
     sireflect_parser_t *parser,
-    sireflect_field_info_t *field,
-    size_t *offset,
-    size_t *max_align
+    sireflect_token_t type_token
 ) {
-    parser->field_start = NULL;
-    parser->field_len = 0;
-
-    sireflect_token_t type_token = sireflect_expect(parser, sireflect_token_ident, "field type");
-    int is_pointer = 0;
-    size_t array_counts[SIREFLECT_MAX_ARRAY_DIMS];
-    size_t array_dim_count = 0;
-
-    if (parser->current.kind == sireflect_token_star) {
-        is_pointer = 1;
-        sireflect_parser_next(parser);
-    }
-
-    sireflect_token_t name_token = sireflect_expect_field_name(parser);
-    array_dim_count =
-        sireflect_parse_array_dimensions(parser, array_counts, SIREFLECT_MAX_ARRAY_DIMS);
-    sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
-
     char *type_name = sireflect_dup_range(type_token.start, type_token.len);
     sireflect_handle_t field_type = sireflect_type_by_name(reg, type_name);
     if (field_type == SIREFLECT_INVALID_HANDLE) {
@@ -602,6 +604,36 @@ static inline void sireflect_parse_field(
         sireflect_assert(false, parser->message);
     }
 
+    free(type_name);
+    return field_type;
+}
+
+static inline void sireflect_parse_declarator(
+    sireflect_registry_t *reg,
+    sireflect_parser_t *parser,
+    sireflect_field_info_t *field,
+    sireflect_token_t type_token,
+    size_t *offset,
+    size_t *max_align
+) {
+    parser->field_start = NULL;
+    parser->field_len = 0;
+
+    int is_pointer = 0;
+    size_t array_counts[SIREFLECT_MAX_ARRAY_DIMS];
+    size_t array_dim_count = 0;
+
+    if (parser->current.kind == sireflect_token_star) {
+        is_pointer = 1;
+        sireflect_parser_next(parser);
+    }
+
+    sireflect_token_t name_token = sireflect_expect_field_name(parser);
+    array_dim_count =
+        sireflect_parse_array_dimensions(parser, array_counts, SIREFLECT_MAX_ARRAY_DIMS);
+
+    sireflect_handle_t field_type = sireflect_resolve_field_type(reg, parser, type_token);
+
     if (is_pointer) {
         field_type = sireflect_registry_get_or_add_pointer_type(reg, field_type);
     }
@@ -613,8 +645,6 @@ static inline void sireflect_parse_field(
     const sireflect_type_info_t *type_info = sireflect_type_info(reg, field_type);
     sireflect_assert(type_info != NULL, "field type metadata must exist");
 
-    free(type_name);
-
     field->name = sireflect_dup_range(name_token.start, name_token.len);
     field->type = field_type;
     field->size = type_info->size;
@@ -625,6 +655,31 @@ static inline void sireflect_parse_field(
     if (field->align > *max_align) {
         *max_align = field->align;
     }
+}
+
+static inline size_t sireflect_parse_declaration(
+    sireflect_registry_t *reg,
+    sireflect_parser_t *parser,
+    sireflect_field_info_t *fields,
+    size_t *offset,
+    size_t *max_align
+) {
+    size_t count = 0;
+    sireflect_token_t type_token = sireflect_expect(parser, sireflect_token_ident, "field type");
+
+    for (;;) {
+        sireflect_parse_declarator(reg, parser, &fields[count], type_token, offset, max_align);
+        count++;
+
+        if (parser->current.kind != sireflect_token_comma) {
+            break;
+        }
+
+        sireflect_parser_next(parser);
+    }
+
+    sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
+    return count;
 }
 
 void sireflect_parse_struct_fields(
@@ -657,8 +712,8 @@ void sireflect_parse_struct_fields(
     size_t offset = 0;
     size_t max_align = 1;
 
-    for (size_t i = 0; i < field_count; i++) {
-        sireflect_parse_field(reg, &parser, &fields[i], &offset, &max_align);
+    for (size_t i = 0; i < field_count;) {
+        i += sireflect_parse_declaration(reg, &parser, &fields[i], &offset, &max_align);
     }
 
     sireflect_expect(&parser, sireflect_token_rbrace, "struct field list end");

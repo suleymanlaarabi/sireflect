@@ -51,6 +51,16 @@
         ]
       },
       {
+        "id": "declarators",
+        "testcases": [
+          "multiple_primitive_declarators",
+          "multiple_struct_declarators",
+          "multiple_array_declarators",
+          "multiple_pointer_declarators",
+          "multiple_mixed_declarators"
+        ]
+      },
+      {
         "id": "parser_errors",
         "testcases": [
           "unknown_type_asserts",
@@ -59,14 +69,14 @@
           "alpha_array_count_asserts",
           "missing_array_end_asserts",
           "nested_empty_array_asserts",
-          "multi_decl_asserts",
+          "missing_declarator_asserts",
           "unknown_type_diagnostic",
           "empty_array_diagnostic",
           "zero_array_diagnostic",
           "alpha_array_count_diagnostic",
           "missing_array_end_diagnostic",
           "nested_empty_array_diagnostic",
-          "multi_decl_diagnostic"
+          "missing_declarator_diagnostic"
         ]
       }
     ]

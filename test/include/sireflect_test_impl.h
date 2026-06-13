@@ -23,19 +23,25 @@ void sireflect_test_impl_pointer_array_field(void);
 void sireflect_test_impl_matrix_array_field(void);
 void sireflect_test_impl_pointer_matrix_field(void);
 
+void sireflect_test_impl_multiple_primitive_declarators(void);
+void sireflect_test_impl_multiple_struct_declarators(void);
+void sireflect_test_impl_multiple_array_declarators(void);
+void sireflect_test_impl_multiple_pointer_declarators(void);
+void sireflect_test_impl_multiple_mixed_declarators(void);
+
 void sireflect_test_impl_unknown_type_asserts(void);
 void sireflect_test_impl_empty_array_asserts(void);
 void sireflect_test_impl_zero_array_asserts(void);
 void sireflect_test_impl_alpha_array_count_asserts(void);
 void sireflect_test_impl_missing_array_end_asserts(void);
 void sireflect_test_impl_nested_empty_array_asserts(void);
-void sireflect_test_impl_multi_decl_asserts(void);
+void sireflect_test_impl_missing_declarator_asserts(void);
 void sireflect_test_impl_unknown_type_diagnostic(void);
 void sireflect_test_impl_empty_array_diagnostic(void);
 void sireflect_test_impl_zero_array_diagnostic(void);
 void sireflect_test_impl_alpha_array_count_diagnostic(void);
 void sireflect_test_impl_missing_array_end_diagnostic(void);
 void sireflect_test_impl_nested_empty_array_diagnostic(void);
-void sireflect_test_impl_multi_decl_diagnostic(void);
+void sireflect_test_impl_missing_declarator_diagnostic(void);
 
 #endif
