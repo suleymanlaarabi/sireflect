@@ -602,11 +602,8 @@ static inline void sireflect_parse_field(
         sireflect_assert(false, parser->message);
     }
 
-    if (is_pointer && array_dim_count != 0) {
+    if (is_pointer) {
         field_type = sireflect_registry_get_or_add_pointer_type(reg, field_type);
-    } else if (is_pointer) {
-        field_type = sireflect_type_by_name(reg, "ptr");
-        sireflect_assert(field_type != SIREFLECT_INVALID_HANDLE, "built-in ptr type is missing");
     }
 
     for (size_t i = array_dim_count; i > 0; i--) {

@@ -35,7 +35,8 @@
         "id": "pointers",
         "testcases": [
           "pointer_field",
-          "pointer_compat_field"
+          "pointer_compat_field",
+          "raw_pointer_field"
         ]
       },
       {

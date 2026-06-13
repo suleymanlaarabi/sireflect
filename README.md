@@ -67,8 +67,8 @@ TYPE field[N][M];
 TYPE *field[N];
 ```
 
-Simple pointer fields keep the legacy `ptr` type for compatibility. Arrays of
-pointers use typed pointer element metadata.
+Pointer fields use typed pointer metadata. Use the explicit `ptr` alias when
+you need a raw, untyped pointer field.
 
 Unsupported syntax fails during registration with a debug assertion. This keeps
 the reflected metadata aligned with the real C layout instead of guessing.

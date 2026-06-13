@@ -102,7 +102,7 @@ if (sireflect_type_is_array(field_type)) {
 }
 ```
 
-Simple pointer fields keep the legacy `ptr` type for compatibility:
+Pointer fields are typed pointers:
 
 ```c
 SIREFLECT_STRUCT(Node, {
@@ -110,16 +110,17 @@ SIREFLECT_STRUCT(Node, {
 });
 ```
 
-Typed pointer types are created when registering arrays of pointers:
+The explicit `ptr` alias stays available for raw, untyped pointer metadata:
 
 ```c
-SIREFLECT_STRUCT(NodeChildren, {
-    Position *children[8];
+SIREFLECT_STRUCT(Link, {
+    ptr next;
 });
 ```
 
 Arrays of pointers are inspected by walking from the array type to its element
-type first:
+type first. The same final pointer check also works directly on simple pointer
+fields:
 
 ```c
 sireflect_handle_t current = field->type;

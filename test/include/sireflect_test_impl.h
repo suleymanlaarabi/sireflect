@@ -14,6 +14,7 @@ void sireflect_test_impl_field_copy(void);
 
 void sireflect_test_impl_pointer_field(void);
 void sireflect_test_impl_pointer_compat_field(void);
+void sireflect_test_impl_raw_pointer_field(void);
 
 void sireflect_test_impl_array_field(void);
 void sireflect_test_impl_struct_array_field(void);

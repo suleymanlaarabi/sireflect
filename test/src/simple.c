@@ -24,6 +24,8 @@ SIREFLECT_STRUCT(WithPtr, { Position *pos; });
 
 SIREFLECT_STRUCT(WithCharPtr, { char *name; });
 
+SIREFLECT_STRUCT(WithRawPtr, { ptr raw; });
+
 SIREFLECT_STRUCT(NativeTypes, {
     short a;
     int b;
@@ -256,9 +258,12 @@ void sireflect_test_impl_pointer_field(void) {
     test_uint(field->align, _Alignof(ptr));
 
     const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);
-    test_uint(field->type, sireflect_type_by_name(reg, "ptr"));
-    test_uint(pointer->kind, sireflect_kind_ptr);
-    test_assert(!sireflect_type_is_pointer(pointer));
+    test_uint(pointer->kind, sireflect_kind_pointer);
+    test_assert(sireflect_type_is_pointer(pointer));
+    test_uint(pointer->element_type, sireflect_type_by_name(reg, "Position"));
+    test_uint(pointer->element_type, sireflect_type_pointee(reg, field->type));
+    test_uint(pointer->element_count, 0);
+    test_str(pointer->name, "Position*");
 
     sireflect_registry_fini(reg);
 }
@@ -269,9 +274,30 @@ void sireflect_test_impl_pointer_compat_field(void) {
     const sireflect_field_info_t *field = sireflect_field_info(reg, type, "name");
 
     test_not_null((void *)field);
-    test_uint(field->type, sireflect_type_by_name(reg, "ptr"));
     test_uint(field->offset, offsetof(WithCharPtr, name));
     test_uint(field->size, sizeof(((WithCharPtr *)0)->name));
+    test_uint(field->align, _Alignof(ptr));
+
+    const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);
+    test_uint(pointer->kind, sireflect_kind_pointer);
+    test_assert(sireflect_type_is_pointer(pointer));
+    test_uint(pointer->element_type, sireflect_type_by_name(reg, "char"));
+    test_uint(pointer->element_type, sireflect_type_pointee(reg, field->type));
+    test_uint(pointer->element_count, 0);
+    test_str(pointer->name, "char*");
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_raw_pointer_field(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, WithRawPtr);
+    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "raw");
+
+    test_not_null((void *)field);
+    test_uint(field->type, sireflect_type_by_name(reg, "ptr"));
+    test_uint(field->offset, offsetof(WithRawPtr, raw));
+    test_uint(field->size, sizeof(((WithRawPtr *)0)->raw));
     test_uint(field->align, _Alignof(ptr));
 
     const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);

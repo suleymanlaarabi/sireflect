@@ -36,9 +36,9 @@ SIREFLECT_STRUCT(Node, {
 });
 ```
 
-For `TYPE *field`, Sireflect resolves `TYPE` to make sure it exists, then stores
-the field type as the legacy built-in `ptr` type. This keeps existing consumers
-compatible.
+For `TYPE *field`, Sireflect stores the field type as a typed pointer. The
+pointed type can be inspected with `sireflect_type_pointee`. Use `ptr field;`
+when you need raw, untyped pointer metadata.
 
 For `TYPE field[N]`, Sireflect stores the field type as an array type. The array
 type records the element type handle and element count. Multi-dimensional arrays

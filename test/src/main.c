@@ -24,6 +24,7 @@ void structs_field_copy(void);
 // Testsuite 'pointers'
 void pointers_pointer_field(void);
 void pointers_pointer_compat_field(void);
+void pointers_raw_pointer_field(void);
 
 // Testsuite 'arrays'
 void arrays_array_field(void);
@@ -99,6 +100,10 @@ bake_test_case pointers_testcases[] = {
     {
         "pointer_compat_field",
         pointers_pointer_compat_field
+    },
+    {
+        "raw_pointer_field",
+        pointers_raw_pointer_field
     }
 };
 
@@ -208,7 +213,7 @@ static bake_test_suite suites[] = {
         "pointers",
         NULL,
         NULL,
-        2,
+        3,
         pointers_testcases
     },
     {
