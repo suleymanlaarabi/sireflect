@@ -173,7 +173,7 @@ static void expect_abort_message(
     test_not_null(strstr(output, expected_c));
 }
 
-void simple_builtin_types(void) {
+void sireflect_test_impl_builtin_types(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
 
     test_assert(sireflect_type_by_name(reg, "u8") != SIREFLECT_INVALID_HANDLE);
@@ -199,7 +199,7 @@ void simple_builtin_types(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_empty_struct(void) {
+void sireflect_test_impl_empty_struct(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, Empty);
     const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
@@ -212,7 +212,7 @@ void simple_empty_struct(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_primitive_fields(void) {
+void sireflect_test_impl_primitive_fields(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, Position);
     const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
@@ -230,7 +230,7 @@ void simple_primitive_fields(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_mixed_alignment(void) {
+void sireflect_test_impl_mixed_alignment(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, Mixed);
     const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
@@ -244,7 +244,7 @@ void simple_mixed_alignment(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_pointer_field(void) {
+void sireflect_test_impl_pointer_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect(reg, Position);
     sireflect_handle_t type = sireflect(reg, WithPtr);
@@ -263,7 +263,7 @@ void simple_pointer_field(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_pointer_compat_field(void) {
+void sireflect_test_impl_pointer_compat_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, WithCharPtr);
     const sireflect_field_info_t *field = sireflect_field_info(reg, type, "name");
@@ -283,7 +283,7 @@ void simple_pointer_compat_field(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_native_types(void) {
+void sireflect_test_impl_native_types(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, NativeTypes);
     const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
@@ -319,7 +319,7 @@ void simple_native_types(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_field_copy(void) {
+void sireflect_test_impl_field_copy(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, Position);
 
@@ -333,7 +333,7 @@ void simple_field_copy(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_kind_helpers(void) {
+void sireflect_test_impl_kind_helpers(void) {
     test_str(sireflect_kind_name(sireflect_kind_u8), "u8");
     test_str(sireflect_kind_name(sireflect_kind_i32), "i32");
     test_str(sireflect_kind_name(sireflect_kind_f64), "f64");
@@ -359,7 +359,7 @@ void simple_kind_helpers(void) {
     test_assert(!sireflect_is_numeric((sireflect_kind_t)999));
 }
 
-void simple_type_is_struct_helper(void) {
+void sireflect_test_impl_type_is_struct_helper(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t struct_type = sireflect(reg, Position);
     sireflect_handle_t int_type = sireflect_type_by_name(reg, "int");
@@ -370,12 +370,12 @@ void simple_type_is_struct_helper(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_type_is_struct_asserts(void) {
+void sireflect_test_impl_type_is_struct_asserts(void) {
     test_expect_abort();
     check_null_type_is_struct();
 }
 
-void simple_array_field(void) {
+void sireflect_test_impl_array_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, ArraySyntax);
     const sireflect_field_info_t *field = sireflect_field_info(reg, type, "values");
@@ -403,7 +403,7 @@ void simple_array_field(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_struct_array_field(void) {
+void sireflect_test_impl_struct_array_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t position = sireflect(reg, Position);
     sireflect_handle_t type = sireflect(reg, StructArray);
@@ -424,7 +424,7 @@ void simple_struct_array_field(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_repeated_array_type(void) {
+void sireflect_test_impl_repeated_array_type(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, RepeatedArray);
     const sireflect_field_info_t *a = sireflect_field_info(reg, type, "a");
@@ -437,7 +437,7 @@ void simple_repeated_array_type(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_pointer_array_field(void) {
+void sireflect_test_impl_pointer_array_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t position = sireflect(reg, Position);
     sireflect_handle_t type = sireflect(reg, PointerArray);
@@ -462,7 +462,7 @@ void simple_pointer_array_field(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_matrix_array_field(void) {
+void sireflect_test_impl_matrix_array_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, Matrix);
     const sireflect_field_info_t *field = sireflect_field_info(reg, type, "matrix");
@@ -490,7 +490,7 @@ void simple_matrix_array_field(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_pointer_matrix_field(void) {
+void sireflect_test_impl_pointer_matrix_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t position = sireflect(reg, Position);
     sireflect_handle_t type = sireflect(reg, PointerMatrix);
@@ -517,42 +517,42 @@ void simple_pointer_matrix_field(void) {
     sireflect_registry_fini(reg);
 }
 
-void simple_unknown_type_asserts(void) {
+void sireflect_test_impl_unknown_type_asserts(void) {
     test_expect_abort();
     register_unknown_type();
 }
 
-void simple_empty_array_asserts(void) {
+void sireflect_test_impl_empty_array_asserts(void) {
     test_expect_abort();
     register_empty_array();
 }
 
-void simple_zero_array_asserts(void) {
+void sireflect_test_impl_zero_array_asserts(void) {
     test_expect_abort();
     register_zero_array();
 }
 
-void simple_alpha_array_count_asserts(void) {
+void sireflect_test_impl_alpha_array_count_asserts(void) {
     test_expect_abort();
     register_alpha_array_count();
 }
 
-void simple_missing_array_end_asserts(void) {
+void sireflect_test_impl_missing_array_end_asserts(void) {
     test_expect_abort();
     register_missing_array_end();
 }
 
-void simple_nested_empty_array_asserts(void) {
+void sireflect_test_impl_nested_empty_array_asserts(void) {
     test_expect_abort();
     register_nested_empty_array();
 }
 
-void simple_multi_decl_asserts(void) {
+void sireflect_test_impl_multi_decl_asserts(void) {
     test_expect_abort();
     register_multi_decl();
 }
 
-void simple_unknown_type_diagnostic(void) {
+void sireflect_test_impl_unknown_type_diagnostic(void) {
     expect_abort_message(
         register_unknown_type,
         "unknown field type 'Missing'",
@@ -561,7 +561,7 @@ void simple_unknown_type_diagnostic(void) {
     );
 }
 
-void simple_empty_array_diagnostic(void) {
+void sireflect_test_impl_empty_array_diagnostic(void) {
     expect_abort_message(
         register_empty_array,
         "array element count is required",
@@ -570,7 +570,7 @@ void simple_empty_array_diagnostic(void) {
     );
 }
 
-void simple_zero_array_diagnostic(void) {
+void sireflect_test_impl_zero_array_diagnostic(void) {
     expect_abort_message(
         register_zero_array,
         "array element count must be greater than zero",
@@ -579,7 +579,7 @@ void simple_zero_array_diagnostic(void) {
     );
 }
 
-void simple_alpha_array_count_diagnostic(void) {
+void sireflect_test_impl_alpha_array_count_diagnostic(void) {
     expect_abort_message(
         register_alpha_array_count,
         "array element count must be a positive integer literal",
@@ -588,7 +588,7 @@ void simple_alpha_array_count_diagnostic(void) {
     );
 }
 
-void simple_missing_array_end_diagnostic(void) {
+void sireflect_test_impl_missing_array_end_diagnostic(void) {
     expect_abort_message(
         register_missing_array_end,
         "expected ']' after array element count",
@@ -597,7 +597,7 @@ void simple_missing_array_end_diagnostic(void) {
     );
 }
 
-void simple_nested_empty_array_diagnostic(void) {
+void sireflect_test_impl_nested_empty_array_diagnostic(void) {
     expect_abort_message(
         register_nested_empty_array,
         "array element count is required",
@@ -606,7 +606,7 @@ void simple_nested_empty_array_diagnostic(void) {
     );
 }
 
-void simple_multi_decl_diagnostic(void) {
+void sireflect_test_impl_multi_decl_diagnostic(void) {
     expect_abort_message(
         register_multi_decl,
         "unsupported syntax in reflected struct",

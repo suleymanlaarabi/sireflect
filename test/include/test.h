@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+#include "sireflect_test_impl.h"
 #include "sireflect_test.h"
 
 #endif

@@ -7,31 +7,51 @@
     "use": ["sireflect"]
   },
   "lang.c": {
-    "c-standard": "c99",
+    "c-standard": "c23",
     "include": ["../src"]
   },
   "test": {
     "testsuites": [
       {
-        "id": "simple",
+        "id": "types",
         "testcases": [
           "builtin_types",
+          "native_types",
+          "kind_helpers",
+          "type_is_struct_helper",
+          "type_is_struct_asserts"
+        ]
+      },
+      {
+        "id": "structs",
+        "testcases": [
           "empty_struct",
           "primitive_fields",
           "mixed_alignment",
+          "field_copy"
+        ]
+      },
+      {
+        "id": "pointers",
+        "testcases": [
           "pointer_field",
-          "pointer_compat_field",
-          "native_types",
-          "field_copy",
-          "kind_helpers",
-          "type_is_struct_helper",
-          "type_is_struct_asserts",
+          "pointer_compat_field"
+        ]
+      },
+      {
+        "id": "arrays",
+        "testcases": [
           "array_field",
           "struct_array_field",
           "repeated_array_type",
           "pointer_array_field",
           "matrix_array_field",
-          "pointer_matrix_field",
+          "pointer_matrix_field"
+        ]
+      },
+      {
+        "id": "parser_errors",
+        "testcases": [
           "unknown_type_asserts",
           "empty_array_asserts",
           "zero_array_asserts",

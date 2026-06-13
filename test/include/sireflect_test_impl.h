@@ -1,0 +1,40 @@
+#ifndef SIREFLECT_TEST_IMPL_H
+#define SIREFLECT_TEST_IMPL_H
+
+void sireflect_test_impl_builtin_types(void);
+void sireflect_test_impl_native_types(void);
+void sireflect_test_impl_kind_helpers(void);
+void sireflect_test_impl_type_is_struct_helper(void);
+void sireflect_test_impl_type_is_struct_asserts(void);
+
+void sireflect_test_impl_empty_struct(void);
+void sireflect_test_impl_primitive_fields(void);
+void sireflect_test_impl_mixed_alignment(void);
+void sireflect_test_impl_field_copy(void);
+
+void sireflect_test_impl_pointer_field(void);
+void sireflect_test_impl_pointer_compat_field(void);
+
+void sireflect_test_impl_array_field(void);
+void sireflect_test_impl_struct_array_field(void);
+void sireflect_test_impl_repeated_array_type(void);
+void sireflect_test_impl_pointer_array_field(void);
+void sireflect_test_impl_matrix_array_field(void);
+void sireflect_test_impl_pointer_matrix_field(void);
+
+void sireflect_test_impl_unknown_type_asserts(void);
+void sireflect_test_impl_empty_array_asserts(void);
+void sireflect_test_impl_zero_array_asserts(void);
+void sireflect_test_impl_alpha_array_count_asserts(void);
+void sireflect_test_impl_missing_array_end_asserts(void);
+void sireflect_test_impl_nested_empty_array_asserts(void);
+void sireflect_test_impl_multi_decl_asserts(void);
+void sireflect_test_impl_unknown_type_diagnostic(void);
+void sireflect_test_impl_empty_array_diagnostic(void);
+void sireflect_test_impl_zero_array_diagnostic(void);
+void sireflect_test_impl_alpha_array_count_diagnostic(void);
+void sireflect_test_impl_missing_array_end_diagnostic(void);
+void sireflect_test_impl_nested_empty_array_diagnostic(void);
+void sireflect_test_impl_multi_decl_diagnostic(void);
+
+#endif
