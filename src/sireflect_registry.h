@@ -25,6 +25,9 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
     size_t element_count
 );
 
+sireflect_handle_t
+sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_handle_t pointee_type);
+
 sireflect_type_info_t *
 sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle);
 

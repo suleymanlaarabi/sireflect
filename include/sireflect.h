@@ -77,7 +77,8 @@ typedef enum {
     sireflect_kind_long,
     sireflect_kind_ptr,
     sireflect_kind_struct,
-    sireflect_kind_array
+    sireflect_kind_array,
+    sireflect_kind_pointer
 } sireflect_kind_t;
 
 /* Returns a stable string for a kind, or "unknown" for an invalid kind value. */
@@ -127,7 +128,7 @@ typedef struct {
     /* Fields owned by this type. Empty for non-struct types. */
     sireflect_fields_t fields;
 
-    /* Element type for array types, otherwise SIREFLECT_INVALID_HANDLE. */
+    /* Element type for array types or pointee type for pointer types. */
     sireflect_handle_t element_type;
 
     /* Element count for array types, otherwise 0. */
@@ -196,6 +197,9 @@ bool sireflect_type_is_struct(const sireflect_type_info_t *info);
 /* Returns true when type metadata describes an array type. */
 bool sireflect_type_is_array(const sireflect_type_info_t *info);
 
+/* Returns true when type metadata describes a typed pointer type. */
+bool sireflect_type_is_pointer(const sireflect_type_info_t *info);
+
 /* Returns the element type handle of an array type. */
 sireflect_handle_t
 sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref);
@@ -203,6 +207,10 @@ sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref);
 /* Returns the element count of an array type. */
 size_t
 sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref);
+
+/* Returns the pointee type handle of a typed pointer type. */
+sireflect_handle_t
+sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Finds metadata for a field by name. */
 const sireflect_field_info_t *

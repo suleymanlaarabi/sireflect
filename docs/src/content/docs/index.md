@@ -65,6 +65,9 @@ that is easy to validate:
 ```c
 TYPE field;
 TYPE *field;
+TYPE field[N];
+TYPE field[N][M];
+TYPE *field[N];
 ```
 
 Unsupported declarations assert during registration. This is deliberate: if a

@@ -14,6 +14,7 @@ void simple_empty_struct(void);
 void simple_primitive_fields(void);
 void simple_mixed_alignment(void);
 void simple_pointer_field(void);
+void simple_pointer_compat_field(void);
 void simple_native_types(void);
 void simple_field_copy(void);
 void simple_kind_helpers(void);
@@ -22,15 +23,22 @@ void simple_type_is_struct_asserts(void);
 void simple_array_field(void);
 void simple_struct_array_field(void);
 void simple_repeated_array_type(void);
+void simple_pointer_array_field(void);
+void simple_matrix_array_field(void);
+void simple_pointer_matrix_field(void);
 void simple_unknown_type_asserts(void);
 void simple_empty_array_asserts(void);
 void simple_zero_array_asserts(void);
-void simple_nested_array_asserts(void);
+void simple_alpha_array_count_asserts(void);
+void simple_missing_array_end_asserts(void);
+void simple_nested_empty_array_asserts(void);
 void simple_multi_decl_asserts(void);
 void simple_unknown_type_diagnostic(void);
 void simple_empty_array_diagnostic(void);
 void simple_zero_array_diagnostic(void);
-void simple_nested_array_diagnostic(void);
+void simple_alpha_array_count_diagnostic(void);
+void simple_missing_array_end_diagnostic(void);
+void simple_nested_empty_array_diagnostic(void);
 void simple_multi_decl_diagnostic(void);
 
 bake_test_case simple_testcases[] = {
@@ -53,6 +61,10 @@ bake_test_case simple_testcases[] = {
     {
         "pointer_field",
         simple_pointer_field
+    },
+    {
+        "pointer_compat_field",
+        simple_pointer_compat_field
     },
     {
         "native_types",
@@ -87,6 +99,18 @@ bake_test_case simple_testcases[] = {
         simple_repeated_array_type
     },
     {
+        "pointer_array_field",
+        simple_pointer_array_field
+    },
+    {
+        "matrix_array_field",
+        simple_matrix_array_field
+    },
+    {
+        "pointer_matrix_field",
+        simple_pointer_matrix_field
+    },
+    {
         "unknown_type_asserts",
         simple_unknown_type_asserts
     },
@@ -99,8 +123,16 @@ bake_test_case simple_testcases[] = {
         simple_zero_array_asserts
     },
     {
-        "nested_array_asserts",
-        simple_nested_array_asserts
+        "alpha_array_count_asserts",
+        simple_alpha_array_count_asserts
+    },
+    {
+        "missing_array_end_asserts",
+        simple_missing_array_end_asserts
+    },
+    {
+        "nested_empty_array_asserts",
+        simple_nested_empty_array_asserts
     },
     {
         "multi_decl_asserts",
@@ -119,8 +151,16 @@ bake_test_case simple_testcases[] = {
         simple_zero_array_diagnostic
     },
     {
-        "nested_array_diagnostic",
-        simple_nested_array_diagnostic
+        "alpha_array_count_diagnostic",
+        simple_alpha_array_count_diagnostic
+    },
+    {
+        "missing_array_end_diagnostic",
+        simple_missing_array_end_diagnostic
+    },
+    {
+        "nested_empty_array_diagnostic",
+        simple_nested_empty_array_diagnostic
     },
     {
         "multi_decl_diagnostic",
@@ -134,7 +174,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        23,
+        31,
         simple_testcases
     }
 };

@@ -13,15 +13,13 @@ Sireflect does not support:
 | Syntax or feature | Reason |
 | --- | --- |
 | Multiple declarators | `f32 x, y;` hides multiple fields behind one type token. |
-| Multi-dimensional arrays | Nested array metadata is not represented yet. |
-| Arrays of pointers | Pointer fields do not keep pointed type metadata yet. |
 | `const` / `volatile` | Qualifiers are not stored in field metadata. |
 | `struct Name` spelling | The parser expects a single registered type name token. |
 | `unsigned int` | Multi-token type names are not supported. |
 | Bitfields | Bit offsets and widths are not represented. |
 | Packed structs | The layout validator assumes normal C alignment. |
 | Attributes | Custom compiler layout attributes are outside the parser subset. |
-| Pointed type metadata | Pointer fields are stored as `ptr`, not `T *`. |
+| Function pointers | Function declarator syntax is outside the parser subset. |
 
 ## Assertion policy
 

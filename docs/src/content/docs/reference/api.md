@@ -78,7 +78,8 @@ typedef enum {
     sireflect_kind_long,
     sireflect_kind_ptr,
     sireflect_kind_struct,
-    sireflect_kind_array
+    sireflect_kind_array,
+    sireflect_kind_pointer
 } sireflect_kind_t;
 ```
 
@@ -92,8 +93,8 @@ invalid kind value.
 
 `sireflect_is_numeric` returns `true` for integer and floating-point kinds,
 including native C numeric kinds such as `char`, `short`, `int`, and `long`.
-It returns `false` for `bool`, `ptr`, `struct`, and invalid kind values.
-It also returns `false` for array types.
+It returns `false` for `bool`, `ptr`, typed pointers, structs, arrays, and
+invalid kind values.
 
 ## Field metadata
 
@@ -138,8 +139,10 @@ Struct types have `kind == sireflect_kind_struct`. Non-struct types have an
 empty field list.
 
 Array types have `kind == sireflect_kind_array`, `element_type` set to the
-element type handle, and `element_count` set to the fixed array length. Other
-types use `SIREFLECT_INVALID_HANDLE` and `0` for those members.
+element type handle, and `element_count` set to the fixed array length. Typed
+pointer types have `kind == sireflect_kind_pointer`, `element_type` set to the
+pointee type handle, and `element_count == 0`. Other types use
+`SIREFLECT_INVALID_HANDLE` and `0` for those members.
 
 ## Struct declaration macros
 
@@ -230,6 +233,10 @@ bool sireflect_type_is_array(
     const sireflect_type_info_t *info
 );
 
+bool sireflect_type_is_pointer(
+    const sireflect_type_info_t *info
+);
+
 sireflect_handle_t sireflect_type_element(
     const sireflect_registry_t *reg,
     sireflect_handle_t ref
@@ -239,11 +246,18 @@ size_t sireflect_type_element_count(
     const sireflect_registry_t *reg,
     sireflect_handle_t ref
 );
+
+sireflect_handle_t sireflect_type_pointee(
+    const sireflect_registry_t *reg,
+    sireflect_handle_t ref
+);
 ```
 
 These functions assert if `ref` is not a valid handle for `reg`.
-`sireflect_type_is_struct` and `sireflect_type_is_array` assert if `info` is
-`NULL`. Array element queries assert if `ref` is not an array type.
+`sireflect_type_is_struct`, `sireflect_type_is_array`, and
+`sireflect_type_is_pointer` assert if `info` is `NULL`. Array element queries
+assert if `ref` is not an array type. Pointer pointee queries assert if `ref` is
+not a typed pointer type.
 
 ## Field queries
 

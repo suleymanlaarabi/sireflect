@@ -11,7 +11,8 @@ compiler plugin or an external code generator.
 - Struct reflection through `SIREFLECT_STRUCT` and a registry owned by the app.
 - Built-in metadata for primitive aliases such as `u8`, `i32`, `f32`, `bool`,
   `ptr`, and native C numeric types.
-- Fixed-size arrays such as `float values[4]` and `Position points[8]`.
+- Fixed-size arrays such as `float values[4]`, `Position points[8]`,
+  `Position *items[8]`, and `f32 matrix[4][4]`.
 - Field metadata with name, type handle, byte offset, size, and alignment.
 - Debug diagnostics through `sireflect_assert`, compiled out when `NDEBUG` is
   defined.
@@ -62,7 +63,12 @@ Sireflect intentionally supports a small declaration subset:
 TYPE field;
 TYPE *field;
 TYPE field[N];
+TYPE field[N][M];
+TYPE *field[N];
 ```
+
+Simple pointer fields keep the legacy `ptr` type for compatibility. Arrays of
+pointers use typed pointer element metadata.
 
 Unsupported syntax fails during registration with a debug assertion. This keeps
 the reflected metadata aligned with the real C layout instead of guessing.
