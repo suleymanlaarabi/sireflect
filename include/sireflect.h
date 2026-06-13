@@ -7,6 +7,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Marks generated helper symbols as intentionally unused. */
 #if defined(__GNUC__) || defined(__clang__)
 #define SIREFLECT_UNUSED __attribute__((unused))
@@ -191,5 +195,9 @@ int sireflect_field_copy(
     const char *field,
     const void *value
 );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
