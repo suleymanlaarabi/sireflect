@@ -71,6 +71,10 @@ static void register_multi_decl(void) {
     sireflect_registry_fini(reg);
 }
 
+static void check_null_type_is_struct(void) {
+    (void)sireflect_type_is_struct(NULL);
+}
+
 static void expect_abort_message(
     void (*function)(void),
     const char *expected_a,
@@ -250,6 +254,44 @@ void simple_field_copy(void) {
     test_int(sireflect_field_copy(reg, type, &pos, "missing", &value), -1);
 
     sireflect_registry_fini(reg);
+}
+
+void simple_kind_helpers(void) {
+    test_str(sireflect_kind_name(sireflect_kind_u8), "u8");
+    test_str(sireflect_kind_name(sireflect_kind_i32), "i32");
+    test_str(sireflect_kind_name(sireflect_kind_f64), "f64");
+    test_str(sireflect_kind_name(sireflect_kind_bool), "bool");
+    test_str(sireflect_kind_name(sireflect_kind_ptr), "ptr");
+    test_str(sireflect_kind_name(sireflect_kind_struct), "struct");
+    test_str(sireflect_kind_name((sireflect_kind_t)999), "unknown");
+
+    test_assert(sireflect_is_numeric(sireflect_kind_u8));
+    test_assert(sireflect_is_numeric(sireflect_kind_i64));
+    test_assert(sireflect_is_numeric(sireflect_kind_f32));
+    test_assert(sireflect_is_numeric(sireflect_kind_char));
+    test_assert(sireflect_is_numeric(sireflect_kind_short));
+    test_assert(sireflect_is_numeric(sireflect_kind_int));
+    test_assert(sireflect_is_numeric(sireflect_kind_long));
+    test_assert(!sireflect_is_numeric(sireflect_kind_bool));
+    test_assert(!sireflect_is_numeric(sireflect_kind_ptr));
+    test_assert(!sireflect_is_numeric(sireflect_kind_struct));
+    test_assert(!sireflect_is_numeric((sireflect_kind_t)999));
+}
+
+void simple_type_is_struct_helper(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t struct_type = sireflect(reg, Position);
+    sireflect_handle_t int_type = sireflect_type_by_name(reg, "int");
+
+    test_assert(sireflect_type_is_struct(sireflect_type_info(reg, struct_type)));
+    test_assert(!sireflect_type_is_struct(sireflect_type_info(reg, int_type)));
+
+    sireflect_registry_fini(reg);
+}
+
+void simple_type_is_struct_asserts(void) {
+    test_expect_abort();
+    check_null_type_is_struct();
 }
 
 void simple_unknown_type_asserts(void) {

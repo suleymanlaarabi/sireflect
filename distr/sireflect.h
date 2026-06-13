@@ -119,6 +119,12 @@ typedef enum {
     sireflect_kind_struct
 } sireflect_kind_t;
 
+/* Returns a stable string for a kind, or "unknown" for an invalid kind value. */
+const char *sireflect_kind_name(sireflect_kind_t kind);
+
+/* Returns true for integer and floating-point kinds. */
+bool sireflect_is_numeric(sireflect_kind_t kind);
+
 /* Metadata for a single reflected field. */
 typedef struct {
     /* Field name as written in the reflected struct. */
@@ -216,6 +222,9 @@ size_t sireflect_type_size(const sireflect_registry_t *reg, sireflect_handle_t r
 
 /* Returns the name of a type. */
 const char *sireflect_type_name(const sireflect_registry_t *reg, sireflect_handle_t ref);
+
+/* Returns true when type metadata describes a struct type. */
+bool sireflect_type_is_struct(const sireflect_type_info_t *info);
 
 /* Finds metadata for a field by name. */
 const sireflect_field_info_t *

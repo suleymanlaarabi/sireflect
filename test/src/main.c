@@ -16,6 +16,9 @@ void simple_mixed_alignment(void);
 void simple_pointer_field(void);
 void simple_native_types(void);
 void simple_field_copy(void);
+void simple_kind_helpers(void);
+void simple_type_is_struct_helper(void);
+void simple_type_is_struct_asserts(void);
 void simple_unknown_type_asserts(void);
 void simple_array_syntax_asserts(void);
 void simple_multi_decl_asserts(void);
@@ -53,6 +56,18 @@ bake_test_case simple_testcases[] = {
         simple_field_copy
     },
     {
+        "kind_helpers",
+        simple_kind_helpers
+    },
+    {
+        "type_is_struct_helper",
+        simple_type_is_struct_helper
+    },
+    {
+        "type_is_struct_asserts",
+        simple_type_is_struct_asserts
+    },
+    {
         "unknown_type_asserts",
         simple_unknown_type_asserts
     },
@@ -84,7 +99,7 @@ static bake_test_suite suites[] = {
         "simple",
         NULL,
         NULL,
-        13,
+        16,
         simple_testcases
     }
 };

@@ -45,6 +45,7 @@ Convenience functions are also available:
 const char *name = sireflect_type_name(reg, type);
 size_t size = sireflect_type_size(reg, type);
 const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+bool is_struct = sireflect_type_is_struct(info);
 ```
 
 ## Type kinds
@@ -72,6 +73,20 @@ sireflect_kind_struct
 ```
 
 For custom structs, `kind` is always `sireflect_kind_struct`.
+
+Use `sireflect_kind_name` when showing kinds in logs or UI:
+
+```c
+printf("kind=%s\n", sireflect_kind_name(info->kind));
+```
+
+Use `sireflect_is_numeric` to classify integer and floating-point kinds:
+
+```c
+if (sireflect_is_numeric(info->kind)) {
+    /* Handle numeric values. */
+}
+```
 
 ## Metadata ownership
 

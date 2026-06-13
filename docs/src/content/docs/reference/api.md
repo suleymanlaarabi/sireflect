@@ -39,6 +39,24 @@ typedef uint64_t sireflect_handle_t;
 `sireflect_registry_t` owns all metadata. `sireflect_handle_t` identifies a type
 inside one registry.
 
+## Assertions
+
+```c
+void sireflect_assert_fail(
+    const char *condition,
+    const char *message,
+    const char *file,
+    int line,
+    const char *function
+);
+
+#define sireflect_assert(condition, message)
+```
+
+In debug builds, `sireflect_assert` reports the failed condition, message,
+source location, and function, then aborts. When `NDEBUG` is defined,
+`sireflect_assert` is compiled as a no-op.
+
 ## Type kind
 
 ```c
@@ -62,6 +80,18 @@ typedef enum {
     sireflect_kind_struct
 } sireflect_kind_t;
 ```
+
+```c
+const char *sireflect_kind_name(sireflect_kind_t kind);
+bool sireflect_is_numeric(sireflect_kind_t kind);
+```
+
+`sireflect_kind_name` returns a stable string for a kind, or `"unknown"` for an
+invalid kind value.
+
+`sireflect_is_numeric` returns `true` for integer and floating-point kinds,
+including native C numeric kinds such as `char`, `short`, `int`, and `long`.
+It returns `false` for `bool`, `ptr`, `struct`, and invalid kind values.
 
 ## Field metadata
 
@@ -139,15 +169,13 @@ types. `sireflect_registry_fini` destroys the registry and all metadata it owns.
 ```c
 sireflect_handle_t sireflect_register_struct(
     sireflect_registry_t *reg,
-    const char *name,
-    const char *fields,
-    size_t size,
-    size_t align
+    const sireflect_struct_desc_t *desc
 );
 ```
 
-Registers a struct type from a textual field list. Most user code should call
-the `sireflect(reg, TypeName)` macro instead.
+Registers a struct type from a descriptor containing its name, textual field
+list, size, and alignment. Most user code should call the
+`sireflect(reg, TypeName)` macro instead.
 
 Returns the existing handle if the same struct was already registered.
 
@@ -185,9 +213,14 @@ const char *sireflect_type_name(
     const sireflect_registry_t *reg,
     sireflect_handle_t ref
 );
+
+bool sireflect_type_is_struct(
+    const sireflect_type_info_t *info
+);
 ```
 
 These functions assert if `ref` is not a valid handle for `reg`.
+`sireflect_type_is_struct` asserts if `info` is `NULL`.
 
 ## Field queries
 
