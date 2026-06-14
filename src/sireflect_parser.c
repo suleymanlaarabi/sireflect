@@ -1,4 +1,5 @@
 #include "sireflect_parser.h"
+#include "sireflect.h"
 #include "sireflect_registry.h"
 
 #include <ctype.h>
@@ -90,7 +91,10 @@ static inline void sireflect_type_spec_set2(
         (int)second.len,
         second.start
     );
-    sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    (void)len;
+    sireflect_indebug(
+        sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    )
     type->start = NULL;
     type->len = 0;
     type->has_name = 1;
@@ -115,7 +119,10 @@ static inline void sireflect_type_spec_set3(
         (int)third.len,
         third.start
     );
-    sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    (void)len;
+    sireflect_indebug(
+        sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    );
     type->start = NULL;
     type->len = 0;
     type->has_name = 1;
@@ -754,9 +761,11 @@ void sireflect_parse_struct_fields(
     sireflect_expect(&parser, sireflect_token_rbrace, "struct field list end");
     sireflect_expect(&parser, sireflect_token_end, "trailing input after struct field list");
 
-    const size_t computed_size = sireflect_align_up(offset, struct_align);
-    sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");
-    sireflect_assert(max_align <= struct_align, "computed field alignment exceeds struct alignment");
+    sireflect_indebug({
+        const size_t computed_size = sireflect_align_up(offset, struct_align);
+        sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");
+        sireflect_assert(max_align <= struct_align, "computed field alignment exceeds struct alignment");
+    });
 
     *out_fields = fields;
     *out_field_count = field_count;

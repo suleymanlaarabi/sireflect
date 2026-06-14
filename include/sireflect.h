@@ -50,12 +50,13 @@ void sireflect_assert_fail(
     const char *function
 );
 
-#define sireflect_assert(condition, message)                                                        \
-    ((condition)                                                                                    \
-         ? (void)0                                                                                  \
-         : sireflect_assert_fail(#condition, message, __FILE__, __LINE__, __func__))
+#define sireflect_assert(condition, message)                                                       \
+    ((condition) ? (void)0                                                                         \
+                 : sireflect_assert_fail(#condition, message, __FILE__, __LINE__, __func__))
+#define sireflect_indebug(...) __VA_ARGS__
 #else
 #define sireflect_assert(condition, message) ((void)0)
+#define sireflect_indebug(...)
 #endif
 
 /* Built-in kind of a reflected type. */
@@ -88,7 +89,8 @@ typedef enum {
     sireflect_kind_unsigned_long_long
 } sireflect_kind_t;
 
-/* Returns a stable string for a kind, or "unknown" for an invalid kind value. */
+/* Returns a stable string for a kind, or "unknown" for an invalid kind value.
+ */
 const char *sireflect_kind_name(sireflect_kind_t kind);
 
 /* Returns true for integer and floating-point kinds. */
@@ -217,16 +219,13 @@ bool sireflect_type_is_array(const sireflect_type_info_t *info);
 bool sireflect_type_is_pointer(const sireflect_type_info_t *info);
 
 /* Returns the element type handle of an array type. */
-sireflect_handle_t
-sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref);
+sireflect_handle_t sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns the element count of an array type. */
-size_t
-sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref);
+size_t sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns the pointee type handle of a typed pointer type. */
-sireflect_handle_t
-sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref);
+sireflect_handle_t sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Finds metadata for a field by name. */
 const sireflect_field_info_t *
