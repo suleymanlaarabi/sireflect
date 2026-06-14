@@ -79,7 +79,14 @@ typedef enum {
     sireflect_kind_ptr,
     sireflect_kind_struct,
     sireflect_kind_array,
-    sireflect_kind_pointer
+    sireflect_kind_pointer,
+    sireflect_kind_signed_char,
+    sireflect_kind_unsigned_char,
+    sireflect_kind_unsigned_short,
+    sireflect_kind_unsigned_int,
+    sireflect_kind_unsigned_long,
+    sireflect_kind_long_long,
+    sireflect_kind_unsigned_long_long
 } sireflect_kind_t;
 ```
 
@@ -92,9 +99,9 @@ bool sireflect_is_numeric(sireflect_kind_t kind);
 invalid kind value.
 
 `sireflect_is_numeric` returns `true` for integer and floating-point kinds,
-including native C numeric kinds such as `char`, `short`, `int`, and `long`.
-It returns `false` for `bool`, `ptr`, typed pointers, structs, arrays, and
-invalid kind values.
+including native C numeric kinds such as `char`, `short`, `int`, `long`,
+`unsigned int`, and `long long`. It returns `false` for `bool`, `ptr`, typed
+pointers, structs, arrays, and invalid kind values.
 
 ## Field qualifiers
 

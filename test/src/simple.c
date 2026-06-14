@@ -75,6 +75,22 @@ SIREFLECT_STRUCT(QualifiedPointer, { const Position *parent; });
 
 SIREFLECT_STRUCT(QualifiedMultipleDeclarators, { const f32 x, y; });
 
+SIREFLECT_STRUCT(MultiTokenBuiltins, {
+    signed char code;
+    unsigned char byte;
+    unsigned short small;
+    unsigned int flags;
+    unsigned long span;
+    long long count;
+    unsigned long long mask;
+});
+
+SIREFLECT_STRUCT(MultiTokenCombinations, {
+    const unsigned int a, b;
+    unsigned long long values[2];
+    signed char *code;
+});
+
 static void register_unknown_type(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_register_struct(
@@ -148,6 +164,20 @@ static void register_post_pointer_qualifier(void) {
             "{ Position * const stable_parent; }",
             sizeof(ptr),
             _Alignof(ptr),
+        }
+    );
+    sireflect_registry_fini(reg);
+}
+
+static void register_unsupported_type_specifier(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){
+            "BadTypeSpecifier",
+            "{ unsigned signed int flags; }",
+            sizeof(unsigned int),
+            _Alignof(unsigned int),
         }
     );
     sireflect_registry_fini(reg);
@@ -750,6 +780,175 @@ void sireflect_test_impl_qualified_multiple_declarators(void) {
     sireflect_registry_fini(reg);
 }
 
+static void expect_multi_token_builtin(
+    sireflect_registry_t *reg,
+    const char *name,
+    sireflect_kind_t kind,
+    size_t size,
+    size_t align
+) {
+    sireflect_handle_t handle = sireflect_type_by_name(reg, name);
+    test_assert(handle != SIREFLECT_INVALID_HANDLE);
+
+    const sireflect_type_info_t *type = sireflect_type_info(reg, handle);
+    test_str(type->name, name);
+    test_uint(type->kind, kind);
+    test_uint(type->size, size);
+    test_uint(type->align, align);
+    test_assert(sireflect_is_numeric(type->kind));
+}
+
+void sireflect_test_impl_multi_token_builtin_registry(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    expect_multi_token_builtin(
+        reg,
+        "signed char",
+        sireflect_kind_signed_char,
+        sizeof(signed char),
+        _Alignof(signed char)
+    );
+    expect_multi_token_builtin(
+        reg,
+        "unsigned char",
+        sireflect_kind_unsigned_char,
+        sizeof(unsigned char),
+        _Alignof(unsigned char)
+    );
+    expect_multi_token_builtin(
+        reg,
+        "unsigned short",
+        sireflect_kind_unsigned_short,
+        sizeof(unsigned short),
+        _Alignof(unsigned short)
+    );
+    expect_multi_token_builtin(
+        reg,
+        "unsigned int",
+        sireflect_kind_unsigned_int,
+        sizeof(unsigned int),
+        _Alignof(unsigned int)
+    );
+    expect_multi_token_builtin(
+        reg,
+        "unsigned long",
+        sireflect_kind_unsigned_long,
+        sizeof(unsigned long),
+        _Alignof(unsigned long)
+    );
+    expect_multi_token_builtin(
+        reg,
+        "long long",
+        sireflect_kind_long_long,
+        sizeof(long long),
+        _Alignof(long long)
+    );
+    expect_multi_token_builtin(
+        reg,
+        "unsigned long long",
+        sireflect_kind_unsigned_long_long,
+        sizeof(unsigned long long),
+        _Alignof(unsigned long long)
+    );
+
+    test_str(sireflect_kind_name(sireflect_kind_signed_char), "signed char");
+    test_str(sireflect_kind_name(sireflect_kind_unsigned_int), "unsigned int");
+    test_str(sireflect_kind_name(sireflect_kind_long_long), "long long");
+    test_str(
+        sireflect_kind_name(sireflect_kind_unsigned_long_long),
+        "unsigned long long"
+    );
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_multi_token_fields(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, MultiTokenBuiltins);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+
+    test_uint(fields->field_count, 7);
+
+    test_str(fields->fields[0].name, "code");
+    test_uint(fields->fields[0].type, sireflect_type_by_name(reg, "signed char"));
+    test_uint(fields->fields[0].offset, offsetof(MultiTokenBuiltins, code));
+    test_uint(fields->fields[0].size, sizeof(signed char));
+    test_uint(fields->fields[0].align, _Alignof(signed char));
+
+    test_str(fields->fields[1].name, "byte");
+    test_uint(fields->fields[1].type, sireflect_type_by_name(reg, "unsigned char"));
+    test_uint(fields->fields[1].offset, offsetof(MultiTokenBuiltins, byte));
+    test_uint(fields->fields[1].size, sizeof(unsigned char));
+    test_uint(fields->fields[1].align, _Alignof(unsigned char));
+
+    test_str(fields->fields[2].name, "small");
+    test_uint(fields->fields[2].type, sireflect_type_by_name(reg, "unsigned short"));
+    test_uint(fields->fields[2].offset, offsetof(MultiTokenBuiltins, small));
+    test_uint(fields->fields[2].size, sizeof(unsigned short));
+    test_uint(fields->fields[2].align, _Alignof(unsigned short));
+
+    test_str(fields->fields[3].name, "flags");
+    test_uint(fields->fields[3].type, sireflect_type_by_name(reg, "unsigned int"));
+    test_uint(fields->fields[3].offset, offsetof(MultiTokenBuiltins, flags));
+    test_uint(fields->fields[3].size, sizeof(unsigned int));
+    test_uint(fields->fields[3].align, _Alignof(unsigned int));
+
+    test_str(fields->fields[4].name, "span");
+    test_uint(fields->fields[4].type, sireflect_type_by_name(reg, "unsigned long"));
+    test_uint(fields->fields[4].offset, offsetof(MultiTokenBuiltins, span));
+    test_uint(fields->fields[4].size, sizeof(unsigned long));
+    test_uint(fields->fields[4].align, _Alignof(unsigned long));
+
+    test_str(fields->fields[5].name, "count");
+    test_uint(fields->fields[5].type, sireflect_type_by_name(reg, "long long"));
+    test_uint(fields->fields[5].offset, offsetof(MultiTokenBuiltins, count));
+    test_uint(fields->fields[5].size, sizeof(long long));
+    test_uint(fields->fields[5].align, _Alignof(long long));
+
+    test_str(fields->fields[6].name, "mask");
+    test_uint(fields->fields[6].type, sireflect_type_by_name(reg, "unsigned long long"));
+    test_uint(fields->fields[6].offset, offsetof(MultiTokenBuiltins, mask));
+    test_uint(fields->fields[6].size, sizeof(unsigned long long));
+    test_uint(fields->fields[6].align, _Alignof(unsigned long long));
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_multi_token_arrays_and_pointers(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect(reg, MultiTokenCombinations);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_handle_t unsigned_int_type = sireflect_type_by_name(reg, "unsigned int");
+    sireflect_handle_t unsigned_long_long_type =
+        sireflect_type_by_name(reg, "unsigned long long");
+    sireflect_handle_t signed_char_type = sireflect_type_by_name(reg, "signed char");
+
+    test_uint(fields->field_count, 4);
+    test_uint(fields->fields[0].type, unsigned_int_type);
+    test_uint(fields->fields[0].offset, offsetof(MultiTokenCombinations, a));
+    test_uint(fields->fields[0].qualifiers, SIREFLECT_QUAL_CONST);
+    test_uint(fields->fields[1].type, unsigned_int_type);
+    test_uint(fields->fields[1].offset, offsetof(MultiTokenCombinations, b));
+    test_uint(fields->fields[1].qualifiers, SIREFLECT_QUAL_CONST);
+
+    const sireflect_type_info_t *array = sireflect_type_info(reg, fields->fields[2].type);
+    test_assert(sireflect_type_is_array(array));
+    test_uint(fields->fields[2].offset, offsetof(MultiTokenCombinations, values));
+    test_uint(fields->fields[2].size, sizeof(((MultiTokenCombinations *)0)->values));
+    test_uint(array->element_type, unsigned_long_long_type);
+    test_uint(array->element_count, 2);
+    test_str(array->name, "unsigned long long[2]");
+
+    const sireflect_type_info_t *pointer = sireflect_type_info(reg, fields->fields[3].type);
+    test_assert(sireflect_type_is_pointer(pointer));
+    test_uint(fields->fields[3].offset, offsetof(MultiTokenCombinations, code));
+    test_uint(fields->fields[3].size, sizeof(((MultiTokenCombinations *)0)->code));
+    test_uint(pointer->element_type, signed_char_type);
+    test_str(pointer->name, "signed char*");
+
+    sireflect_registry_fini(reg);
+}
+
 void sireflect_test_impl_unknown_type_asserts(void) {
     test_expect_abort();
     register_unknown_type();
@@ -788,6 +987,11 @@ void sireflect_test_impl_missing_declarator_asserts(void) {
 void sireflect_test_impl_post_pointer_qualifier_asserts(void) {
     test_expect_abort();
     register_post_pointer_qualifier();
+}
+
+void sireflect_test_impl_unsupported_type_specifier_asserts(void) {
+    test_expect_abort();
+    register_unsupported_type_specifier();
 }
 
 void sireflect_test_impl_unknown_type_diagnostic(void) {
@@ -859,5 +1063,14 @@ void sireflect_test_impl_post_pointer_qualifier_diagnostic(void) {
         "unexpected token while parsing field name",
         "struct 'BadPointerQualifier'",
         "actual identifier 'const'"
+    );
+}
+
+void sireflect_test_impl_unsupported_type_specifier_diagnostic(void) {
+    expect_abort_message(
+        register_unsupported_type_specifier,
+        "unsupported type specifier sequence",
+        "struct 'BadTypeSpecifier'",
+        "actual identifier 'signed'"
     );
 }

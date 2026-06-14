@@ -189,6 +189,15 @@ typedef struct {
     char message[512];
 } sireflect_parser_t;
 
+typedef struct {
+    const char *start;
+    size_t len;
+    char name[64];
+    int has_name;
+    size_t line;
+    size_t column;
+} sireflect_type_spec_t;
+
 static inline int sireflect_is_ident_start(char c) { return isalpha((unsigned char)c) || c == '_'; }
 
 static inline int sireflect_is_ident_char(char c) { return isalnum((unsigned char)c) || c == '_'; }
@@ -200,6 +209,63 @@ static inline int sireflect_token_is_ident(sireflect_token_t token, const char *
 
 static inline int sireflect_token_is_qualifier(sireflect_token_t token) {
     return sireflect_token_is_ident(token, "const") || sireflect_token_is_ident(token, "volatile");
+}
+
+static inline void
+sireflect_type_spec_set(sireflect_type_spec_t *type, sireflect_token_t token) {
+    type->start = token.start;
+    type->len = token.len;
+    type->name[0] = '\0';
+    type->has_name = 0;
+    type->line = token.line;
+    type->column = token.column;
+}
+
+static inline void sireflect_type_spec_set2(
+    sireflect_type_spec_t *type,
+    sireflect_token_t first,
+    sireflect_token_t second
+) {
+    const int len = snprintf(
+        type->name,
+        sizeof(type->name),
+        "%.*s %.*s",
+        (int)first.len,
+        first.start,
+        (int)second.len,
+        second.start
+    );
+    sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    type->start = NULL;
+    type->len = 0;
+    type->has_name = 1;
+    type->line = first.line;
+    type->column = first.column;
+}
+
+static inline void sireflect_type_spec_set3(
+    sireflect_type_spec_t *type,
+    sireflect_token_t first,
+    sireflect_token_t second,
+    sireflect_token_t third
+) {
+    const int len = snprintf(
+        type->name,
+        sizeof(type->name),
+        "%.*s %.*s %.*s",
+        (int)first.len,
+        first.start,
+        (int)second.len,
+        second.start,
+        (int)third.len,
+        third.start
+    );
+    sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    type->start = NULL;
+    type->len = 0;
+    type->has_name = 1;
+    type->line = first.line;
+    type->column = first.column;
 }
 
 static inline const char *sireflect_token_kind_name(sireflect_token_kind_t kind) {
@@ -481,6 +547,72 @@ static inline uint32_t sireflect_parse_qualifiers(sireflect_parser_t *parser) {
     }
 }
 
+static inline void
+sireflect_fail_unsupported_type_specifier(sireflect_parser_t *parser, sireflect_token_t token) {
+    sireflect_parser_fail_at(
+        parser,
+        token,
+        "unsupported type specifier sequence; supported multi-token types are 'signed char', 'unsigned char', 'unsigned short', 'unsigned int', 'unsigned long', 'long long', and 'unsigned long long'"
+    );
+}
+
+static inline sireflect_type_spec_t sireflect_parse_type_specifier(sireflect_parser_t *parser) {
+    sireflect_token_t first = sireflect_expect(parser, sireflect_token_ident, "field type");
+    sireflect_type_spec_t type;
+    sireflect_type_spec_set(&type, first);
+
+    if (sireflect_token_is_ident(first, "signed")) {
+        if (!sireflect_token_is_ident(parser->current, "char")) {
+            sireflect_fail_unsupported_type_specifier(parser, parser->current);
+        }
+
+        sireflect_token_t second = parser->current;
+        sireflect_parser_next(parser);
+        sireflect_type_spec_set2(&type, first, second);
+        return type;
+    }
+
+    if (sireflect_token_is_ident(first, "long")) {
+        if (!sireflect_token_is_ident(parser->current, "long")) {
+            return type;
+        }
+
+        sireflect_token_t second = parser->current;
+        sireflect_parser_next(parser);
+        sireflect_type_spec_set2(&type, first, second);
+        return type;
+    }
+
+    if (sireflect_token_is_ident(first, "unsigned")) {
+        sireflect_token_t second = parser->current;
+
+        if (sireflect_token_is_ident(second, "char") || sireflect_token_is_ident(second, "short") ||
+            sireflect_token_is_ident(second, "int")) {
+            sireflect_parser_next(parser);
+            sireflect_type_spec_set2(&type, first, second);
+            return type;
+        }
+
+        if (sireflect_token_is_ident(second, "long")) {
+            sireflect_parser_next(parser);
+
+            if (sireflect_token_is_ident(parser->current, "long")) {
+                sireflect_token_t third = parser->current;
+                sireflect_parser_next(parser);
+                sireflect_type_spec_set3(&type, first, second, third);
+                return type;
+            }
+
+            sireflect_type_spec_set2(&type, first, second);
+            return type;
+        }
+
+        sireflect_fail_unsupported_type_specifier(parser, second);
+    }
+
+    return type;
+}
+
 static inline char *sireflect_dup_range(const char *start, size_t len) {
     char *result = malloc(len + 1);
     sireflect_assert(result != NULL, "failed to allocate parser string");
@@ -565,7 +697,7 @@ static inline size_t sireflect_parse_declaration_shape(sireflect_parser_t *parse
     size_t count = 0;
 
     (void)sireflect_parse_qualifiers(parser);
-    sireflect_expect(parser, sireflect_token_ident, "field type");
+    (void)sireflect_parse_type_specifier(parser);
 
     for (;;) {
         sireflect_parse_declarator_shape(parser);
@@ -613,9 +745,16 @@ static inline size_t sireflect_align_up(size_t value, size_t align) {
 static inline sireflect_handle_t sireflect_resolve_field_type(
     sireflect_registry_t *reg,
     sireflect_parser_t *parser,
-    sireflect_token_t type_token
+    sireflect_type_spec_t type
 ) {
-    char *type_name = sireflect_dup_range(type_token.start, type_token.len);
+    char *owned_name = NULL;
+    const char *type_name = type.name;
+
+    if (!type.has_name) {
+        owned_name = sireflect_dup_range(type.start, type.len);
+        type_name = owned_name;
+    }
+
     sireflect_handle_t field_type = sireflect_type_by_name(reg, type_name);
     if (field_type == SIREFLECT_INVALID_HANDLE) {
         char context[160];
@@ -627,14 +766,14 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
             "unknown field type '%s' in %s at line %zu, column %zu; register the type before this struct or use a supported primitive alias",
             type_name,
             context,
-            type_token.line,
-            type_token.column
+            type.line,
+            type.column
         );
-        free(type_name);
+        free(owned_name);
         sireflect_assert(false, parser->message);
     }
 
-    free(type_name);
+    free(owned_name);
     return field_type;
 }
 
@@ -642,7 +781,7 @@ static inline void sireflect_parse_declarator(
     sireflect_registry_t *reg,
     sireflect_parser_t *parser,
     sireflect_field_info_t *field,
-    sireflect_token_t type_token,
+    sireflect_type_spec_t type,
     uint32_t qualifiers,
     size_t *offset,
     size_t *max_align
@@ -663,7 +802,7 @@ static inline void sireflect_parse_declarator(
     array_dim_count =
         sireflect_parse_array_dimensions(parser, array_counts, SIREFLECT_MAX_ARRAY_DIMS);
 
-    sireflect_handle_t field_type = sireflect_resolve_field_type(reg, parser, type_token);
+    sireflect_handle_t field_type = sireflect_resolve_field_type(reg, parser, type);
 
     if (is_pointer) {
         field_type = sireflect_registry_get_or_add_pointer_type(reg, field_type);
@@ -698,14 +837,14 @@ static inline size_t sireflect_parse_declaration(
 ) {
     size_t count = 0;
     uint32_t qualifiers = sireflect_parse_qualifiers(parser);
-    sireflect_token_t type_token = sireflect_expect(parser, sireflect_token_ident, "field type");
+    sireflect_type_spec_t type = sireflect_parse_type_specifier(parser);
 
     for (;;) {
         sireflect_parse_declarator(
             reg,
             parser,
             &fields[count],
-            type_token,
+            type,
             qualifiers,
             offset,
             max_align
@@ -959,6 +1098,9 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
 #define add_type(name, kind)                                                                       \
     sireflect_registry_add_type(reg, #name, kind, sizeof(name), _Alignof(name), NULL, 0)
 
+#define add_named_type(c_type, reflected_name, kind)                                               \
+    sireflect_registry_add_type(reg, reflected_name, kind, sizeof(c_type), _Alignof(c_type), NULL, 0)
+
 static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
     add_type(u8, sireflect_kind_u8);
     add_type(u16, sireflect_kind_u16);
@@ -988,6 +1130,14 @@ static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
     add_type(short, sireflect_kind_short);
     add_type(int, sireflect_kind_int);
     add_type(long, sireflect_kind_long);
+
+    add_named_type(signed char, "signed char", sireflect_kind_signed_char);
+    add_named_type(unsigned char, "unsigned char", sireflect_kind_unsigned_char);
+    add_named_type(unsigned short, "unsigned short", sireflect_kind_unsigned_short);
+    add_named_type(unsigned int, "unsigned int", sireflect_kind_unsigned_int);
+    add_named_type(unsigned long, "unsigned long", sireflect_kind_unsigned_long);
+    add_named_type(long long, "long long", sireflect_kind_long_long);
+    add_named_type(unsigned long long, "unsigned long long", sireflect_kind_unsigned_long_long);
 }
 
 sireflect_registry_t *sireflect_registry_init(void) {
@@ -1128,6 +1278,20 @@ const char *sireflect_kind_name(sireflect_kind_t kind) {
         return "struct";
     case sireflect_kind_array:
         return "array";
+    case sireflect_kind_signed_char:
+        return "signed char";
+    case sireflect_kind_unsigned_char:
+        return "unsigned char";
+    case sireflect_kind_unsigned_short:
+        return "unsigned short";
+    case sireflect_kind_unsigned_int:
+        return "unsigned int";
+    case sireflect_kind_unsigned_long:
+        return "unsigned long";
+    case sireflect_kind_long_long:
+        return "long long";
+    case sireflect_kind_unsigned_long_long:
+        return "unsigned long long";
     }
 
     return "unknown";
@@ -1149,6 +1313,13 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
     case sireflect_kind_short:
     case sireflect_kind_int:
     case sireflect_kind_long:
+    case sireflect_kind_signed_char:
+    case sireflect_kind_unsigned_char:
+    case sireflect_kind_unsigned_short:
+    case sireflect_kind_unsigned_int:
+    case sireflect_kind_unsigned_long:
+    case sireflect_kind_long_long:
+    case sireflect_kind_unsigned_long_long:
         return true;
     case sireflect_kind_bool:
     case sireflect_kind_ptr:

@@ -35,6 +35,10 @@ SIREFLECT_STRUCT(Node, {
     const f32 scale;
     volatile int generation;
     const volatile u32 flags;
+    unsigned int mask;
+    long long total;
+    signed char code;
+    unsigned long long ids[2];
     f32 u, v;
     Position pos;
     Position a, b;
@@ -53,6 +57,9 @@ SIREFLECT_STRUCT(Node, {
 
 Multiple declarators in one declaration share the same base type. Each
 declarator can have its own `*` marker and array dimensions.
+
+`TYPE` may be a registered custom type, a single-token built-in type, or one of
+the supported multi-token built-in type names listed below.
 
 Leading `const` and `volatile` qualifiers are stored on each reflected field in
 `sireflect_field_info_t::qualifiers`. They do not change the reflected type
@@ -92,12 +99,23 @@ The registry creates handles for these built-in names:
 | `short` | `short` |
 | `int` | `int` |
 | `long` | `long` |
+| `signed char` | `signed char` |
+| `unsigned char` | `unsigned char` |
+| `unsigned short` | `unsigned short` |
+| `unsigned int` | `unsigned int` |
+| `unsigned long` | `unsigned long` |
+| `long long` | `long long` |
+| `unsigned long long` | `unsigned long long` |
 | `float` | `float` |
 | `double` | `double` |
 | `ptr` | `void *` |
 
 `f32` and `float` are separate reflected names with the same size and alignment.
 The same applies to `f64` and `double`.
+
+Multi-token type names are canonicalized with single spaces in metadata. For
+example, `unsigned   int flags;` resolves to the reflected type named
+`unsigned int`.
 
 ## Custom type names
 
@@ -128,7 +146,8 @@ These declarations are not supported:
 ```c
 Position * const parent;
 struct Position pos;
-unsigned int flags;
+signed int flags;
+long double value;
 int bits : 3;
 ```
 

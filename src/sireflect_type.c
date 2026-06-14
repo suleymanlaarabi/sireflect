@@ -40,6 +40,20 @@ const char *sireflect_kind_name(sireflect_kind_t kind) {
         return "struct";
     case sireflect_kind_array:
         return "array";
+    case sireflect_kind_signed_char:
+        return "signed char";
+    case sireflect_kind_unsigned_char:
+        return "unsigned char";
+    case sireflect_kind_unsigned_short:
+        return "unsigned short";
+    case sireflect_kind_unsigned_int:
+        return "unsigned int";
+    case sireflect_kind_unsigned_long:
+        return "unsigned long";
+    case sireflect_kind_long_long:
+        return "long long";
+    case sireflect_kind_unsigned_long_long:
+        return "unsigned long long";
     }
 
     return "unknown";
@@ -61,6 +75,13 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
     case sireflect_kind_short:
     case sireflect_kind_int:
     case sireflect_kind_long:
+    case sireflect_kind_signed_char:
+    case sireflect_kind_unsigned_char:
+    case sireflect_kind_unsigned_short:
+    case sireflect_kind_unsigned_int:
+    case sireflect_kind_unsigned_long:
+    case sireflect_kind_long_long:
+    case sireflect_kind_unsigned_long_long:
         return true;
     case sireflect_kind_bool:
     case sireflect_kind_ptr:

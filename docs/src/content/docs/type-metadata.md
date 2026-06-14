@@ -93,11 +93,20 @@ sireflect_kind_ptr
 sireflect_kind_struct
 sireflect_kind_array
 sireflect_kind_pointer
+sireflect_kind_signed_char
+sireflect_kind_unsigned_char
+sireflect_kind_unsigned_short
+sireflect_kind_unsigned_int
+sireflect_kind_unsigned_long
+sireflect_kind_long_long
+sireflect_kind_unsigned_long_long
 ```
 
 For custom structs, `kind` is always `sireflect_kind_struct`.
 For fixed-size arrays, `kind` is `sireflect_kind_array`.
 For typed pointers, `kind` is `sireflect_kind_pointer`.
+Multi-token built-in type names keep their own native C kind values and native
+`sizeof` / `_Alignof` metadata.
 
 Array types are created when registering fields such as:
 

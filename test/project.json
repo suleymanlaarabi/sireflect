@@ -69,6 +69,14 @@
         ]
       },
       {
+        "id": "type_specifiers",
+        "testcases": [
+          "multi_token_builtin_registry",
+          "multi_token_fields",
+          "multi_token_arrays_and_pointers"
+        ]
+      },
+      {
         "id": "parser_errors",
         "testcases": [
           "unknown_type_asserts",
@@ -79,6 +87,7 @@
           "nested_empty_array_asserts",
           "missing_declarator_asserts",
           "post_pointer_qualifier_asserts",
+          "unsupported_type_specifier_asserts",
           "unknown_type_diagnostic",
           "empty_array_diagnostic",
           "zero_array_diagnostic",
@@ -86,7 +95,8 @@
           "missing_array_end_diagnostic",
           "nested_empty_array_diagnostic",
           "missing_declarator_diagnostic",
-          "post_pointer_qualifier_diagnostic"
+          "post_pointer_qualifier_diagnostic",
+          "unsupported_type_specifier_diagnostic"
         ]
       }
     ]

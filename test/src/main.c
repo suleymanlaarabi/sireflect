@@ -46,6 +46,11 @@ void qualifiers_qualified_scalar_fields(void);
 void qualifiers_qualified_pointer_field(void);
 void qualifiers_qualified_multiple_declarators(void);
 
+// Testsuite 'type_specifiers'
+void type_specifiers_multi_token_builtin_registry(void);
+void type_specifiers_multi_token_fields(void);
+void type_specifiers_multi_token_arrays_and_pointers(void);
+
 // Testsuite 'parser_errors'
 void parser_errors_unknown_type_asserts(void);
 void parser_errors_empty_array_asserts(void);
@@ -55,6 +60,7 @@ void parser_errors_missing_array_end_asserts(void);
 void parser_errors_nested_empty_array_asserts(void);
 void parser_errors_missing_declarator_asserts(void);
 void parser_errors_post_pointer_qualifier_asserts(void);
+void parser_errors_unsupported_type_specifier_asserts(void);
 void parser_errors_unknown_type_diagnostic(void);
 void parser_errors_empty_array_diagnostic(void);
 void parser_errors_zero_array_diagnostic(void);
@@ -63,6 +69,7 @@ void parser_errors_missing_array_end_diagnostic(void);
 void parser_errors_nested_empty_array_diagnostic(void);
 void parser_errors_missing_declarator_diagnostic(void);
 void parser_errors_post_pointer_qualifier_diagnostic(void);
+void parser_errors_unsupported_type_specifier_diagnostic(void);
 
 bake_test_case types_testcases[] = {
     {
@@ -186,6 +193,21 @@ bake_test_case qualifiers_testcases[] = {
     }
 };
 
+bake_test_case type_specifiers_testcases[] = {
+    {
+        "multi_token_builtin_registry",
+        type_specifiers_multi_token_builtin_registry
+    },
+    {
+        "multi_token_fields",
+        type_specifiers_multi_token_fields
+    },
+    {
+        "multi_token_arrays_and_pointers",
+        type_specifiers_multi_token_arrays_and_pointers
+    }
+};
+
 bake_test_case parser_errors_testcases[] = {
     {
         "unknown_type_asserts",
@@ -220,6 +242,10 @@ bake_test_case parser_errors_testcases[] = {
         parser_errors_post_pointer_qualifier_asserts
     },
     {
+        "unsupported_type_specifier_asserts",
+        parser_errors_unsupported_type_specifier_asserts
+    },
+    {
         "unknown_type_diagnostic",
         parser_errors_unknown_type_diagnostic
     },
@@ -250,6 +276,10 @@ bake_test_case parser_errors_testcases[] = {
     {
         "post_pointer_qualifier_diagnostic",
         parser_errors_post_pointer_qualifier_diagnostic
+    },
+    {
+        "unsupported_type_specifier_diagnostic",
+        parser_errors_unsupported_type_specifier_diagnostic
     }
 };
 
@@ -298,14 +328,21 @@ static bake_test_suite suites[] = {
         qualifiers_testcases
     },
     {
+        "type_specifiers",
+        NULL,
+        NULL,
+        3,
+        type_specifiers_testcases
+    },
+    {
         "parser_errors",
         NULL,
         NULL,
-        16,
+        18,
         parser_errors_testcases
     }
 };
 
 int main(int argc, char *argv[]) {
-    return bake_test_run("sireflect.test", argc, argv, suites, 7);
+    return bake_test_run("sireflect.test", argc, argv, suites, 8);
 }

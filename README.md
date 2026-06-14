@@ -10,7 +10,8 @@ compiler plugin or an external code generator.
 - Compact C API with zero runtime dependencies.
 - Struct reflection through `SIREFLECT_STRUCT` and a registry owned by the app.
 - Built-in metadata for primitive aliases such as `u8`, `i32`, `f32`, `bool`,
-  `ptr`, and native C numeric types.
+  `ptr`, native C numeric types, and common multi-token type names such as
+  `unsigned int` and `long long`.
 - Fixed-size arrays such as `float values[4]`, `Position points[8]`,
   `Position *items[8]`, and `f32 matrix[4][4]`.
 - Field metadata with name, type handle, byte offset, size, alignment, and
@@ -64,6 +65,7 @@ Sireflect intentionally supports a small declaration subset:
 TYPE field;
 const TYPE field;
 volatile TYPE field;
+const volatile TYPE field;
 TYPE a, b;
 TYPE *field;
 TYPE *a, *b;

@@ -13,8 +13,8 @@ Sireflect does not support:
 | Syntax or feature | Reason |
 | --- | --- |
 | Pointer-level qualifiers such as `TYPE * const field` | Pointer-specific qualifier metadata is not modeled separately. |
-| `struct Name` spelling | The parser expects a single registered type name token. |
-| `unsigned int` | Multi-token type names are not supported. |
+| `struct Name` spelling | The parser expects a registered type name, not a tagged type spelling. |
+| Type specifier combinations outside the supported list, such as `signed int` or `long double` | The parser only canonicalizes a bounded set of common integer spellings. |
 | Bitfields | Bit offsets and widths are not represented. |
 | Packed structs | The layout validator assumes normal C alignment. |
 | Attributes | Custom compiler layout attributes are outside the parser subset. |

@@ -191,6 +191,9 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
 #define add_type(name, kind)                                                                       \
     sireflect_registry_add_type(reg, #name, kind, sizeof(name), _Alignof(name), NULL, 0)
 
+#define add_named_type(c_type, reflected_name, kind)                                               \
+    sireflect_registry_add_type(reg, reflected_name, kind, sizeof(c_type), _Alignof(c_type), NULL, 0)
+
 static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
     add_type(u8, sireflect_kind_u8);
     add_type(u16, sireflect_kind_u16);
@@ -220,6 +223,14 @@ static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
     add_type(short, sireflect_kind_short);
     add_type(int, sireflect_kind_int);
     add_type(long, sireflect_kind_long);
+
+    add_named_type(signed char, "signed char", sireflect_kind_signed_char);
+    add_named_type(unsigned char, "unsigned char", sireflect_kind_unsigned_char);
+    add_named_type(unsigned short, "unsigned short", sireflect_kind_unsigned_short);
+    add_named_type(unsigned int, "unsigned int", sireflect_kind_unsigned_int);
+    add_named_type(unsigned long, "unsigned long", sireflect_kind_unsigned_long);
+    add_named_type(long long, "long long", sireflect_kind_long_long);
+    add_named_type(unsigned long long, "unsigned long long", sireflect_kind_unsigned_long_long);
 }
 
 sireflect_registry_t *sireflect_registry_init(void) {
