@@ -1113,6 +1113,57 @@ void sireflect_test_impl_try_register_registry_usable_after_failure(void) {
     sireflect_registry_fini(reg);
 }
 
+void sireflect_test_impl_try_register_error_message_persists(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    sireflect_handle_t failed = sireflect_try_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
+    );
+    const char *first = sireflect_error();
+    const char *second = sireflect_error();
+
+    test_uint(failed, SIREFLECT_INVALID_HANDLE);
+    test_not_null((void *)first);
+    test_not_null((void *)second);
+    test_str(first, second);
+    test_not_null((void *)strstr(first, "unknown field type 'Missing'"));
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_error_cleared_by_public_call(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    sireflect_handle_t failed = sireflect_try_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
+    );
+
+    test_uint(failed, SIREFLECT_INVALID_HANDLE);
+    test_not_null((void *)sireflect_error());
+
+    (void)sireflect_kind_name(sireflect_kind_u8);
+    test_null((void *)sireflect_error());
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_error_cleared_by_registry_fini(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    sireflect_handle_t failed = sireflect_try_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
+    );
+
+    test_uint(failed, SIREFLECT_INVALID_HANDLE);
+    test_not_null((void *)sireflect_error());
+
+    sireflect_registry_fini(reg);
+    test_null((void *)sireflect_error());
+}
+
 void sireflect_test_impl_unknown_type_asserts(void) {
     test_expect_abort();
     register_unknown_type();

@@ -1,11 +1,15 @@
 #include "sireflect.h"
+#include "sireflect_error.h"
 #include "sireflect_parser.h"
 #include "sireflect_registry.h"
 
 sireflect_handle_t
 sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
+    sireflect_error_clear();
+
     if (reg == NULL || desc == NULL || desc->name == NULL || desc->fields == NULL ||
         desc->align == 0) {
+        sireflect_error_set("invalid struct descriptor");
         return SIREFLECT_INVALID_HANDLE;
     }
 
@@ -14,6 +18,7 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
         const sireflect_type_info_t *type = sireflect_type_info(reg, existing);
         if (type->kind != sireflect_kind_struct || type->size != desc->size ||
             type->align != desc->align) {
+            sireflect_error_set("existing type is incompatible with struct descriptor");
             return SIREFLECT_INVALID_HANDLE;
         }
         return existing;
@@ -48,6 +53,8 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
 
 sireflect_handle_t
 sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
+    sireflect_error_clear();
+
     sireflect_assert(reg != NULL, "registry must not be NULL");
     sireflect_assert(desc != NULL, "struct descriptor must not be NULL");
     sireflect_assert(desc->name != NULL, "struct descriptor name must not be NULL");

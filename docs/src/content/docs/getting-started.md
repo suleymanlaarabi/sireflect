@@ -66,7 +66,10 @@ that the size and alignment still match.
 
 Use `sireflect_try_register_struct` directly when invalid reflected source
 should return `SIREFLECT_INVALID_HANDLE` instead of triggering the strict debug
-assertions used by `sireflect_register_struct`.
+assertions used by `sireflect_register_struct`. After a failed try-register,
+`sireflect_error()` returns the current library-owned error string. The pointer
+is valid until the next public `sireflect_*` call except `sireflect_error()`, or
+until `sireflect_registry_fini()`.
 
 ## Inspect fields
 

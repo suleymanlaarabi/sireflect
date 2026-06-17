@@ -197,6 +197,8 @@ types. `sireflect_registry_fini` destroys the registry and all metadata it owns.
 ## Register structs
 
 ```c
+const char *sireflect_error(void);
+
 sireflect_handle_t sireflect_register_struct(
     sireflect_registry_t *reg,
     const sireflect_struct_desc_t *desc
@@ -219,6 +221,13 @@ syntax fail through `sireflect_assert` in debug builds.
 `sireflect_try_register_struct` returns `SIREFLECT_INVALID_HANDLE` for those
 recoverable failures instead. Allocation failures remain non-recoverable
 assertions.
+
+After a recoverable failure, `sireflect_error` returns the current
+library-owned error string, or `NULL` if no error is stored. Calling
+`sireflect_error` does not clear or free the message, so repeated calls return
+the same current error. The message is cleared by the next public `sireflect_*`
+call except `sireflect_error`, and is also freed by `sireflect_registry_fini`.
+Callers must not free the returned pointer.
 
 ## Type lookup
 

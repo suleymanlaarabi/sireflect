@@ -186,6 +186,13 @@ sireflect_registry_t *sireflect_registry_init(void);
 void sireflect_registry_fini(sireflect_registry_t *reg);
 
 /*
+ * Returns the current recoverable error message, or NULL if there is no error.
+ * The returned pointer is owned by Sireflect and remains valid until the next
+ * public sireflect_* call except sireflect_error(), or until sireflect_registry_fini().
+ */
+const char *sireflect_error(void);
+
+/*
  * Registers a struct type from its textual field list.
  * Returns the existing handle if the same type was already registered.
  */

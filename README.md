@@ -17,7 +17,7 @@ compiler plugin or an external code generator.
 - Field metadata with name, type handle, byte offset, size, alignment, and
   leading `const` / `volatile` qualifiers.
 - Strict registration with debug diagnostics, plus recoverable registration
-  through `sireflect_try_register_struct`.
+  through `sireflect_try_register_struct` and `sireflect_error`.
 
 ```c
 #include "sireflect.h"
@@ -82,6 +82,10 @@ you need a raw, untyped pointer field.
 Unsupported syntax fails during strict registration with a debug assertion. Use
 `sireflect_try_register_struct` when invalid reflected source should return
 `SIREFLECT_INVALID_HANDLE` instead of aborting in debug builds.
+After a recoverable failure, call `sireflect_error()` to inspect the current
+library-owned error string. The pointer remains valid until the next public
+`sireflect_*` call except `sireflect_error()`, or until
+`sireflect_registry_fini()`.
 
 ## Documentation
 

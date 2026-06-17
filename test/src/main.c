@@ -59,6 +59,9 @@ void try_register_array_errors_return_invalid(void);
 void try_register_declarator_errors_return_invalid(void);
 void try_register_existing_incompatible_type_returns_invalid(void);
 void try_register_registry_usable_after_failure(void);
+void try_register_error_message_persists(void);
+void try_register_error_cleared_by_public_call(void);
+void try_register_error_cleared_by_registry_fini(void);
 
 // Testsuite 'parser_errors'
 void parser_errors_unknown_type_asserts(void);
@@ -245,6 +248,18 @@ bake_test_case try_register_testcases[] = {
     {
         "registry_usable_after_failure",
         try_register_registry_usable_after_failure
+    },
+    {
+        "error_message_persists",
+        try_register_error_message_persists
+    },
+    {
+        "error_cleared_by_public_call",
+        try_register_error_cleared_by_public_call
+    },
+    {
+        "error_cleared_by_registry_fini",
+        try_register_error_cleared_by_registry_fini
     }
 };
 
@@ -378,7 +393,7 @@ static bake_test_suite suites[] = {
         "try_register",
         NULL,
         NULL,
-        7,
+        10,
         try_register_testcases
     },
     {

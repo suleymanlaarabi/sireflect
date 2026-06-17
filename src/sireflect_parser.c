@@ -1,5 +1,6 @@
 #include "sireflect_parser.h"
 #include "sireflect.h"
+#include "sireflect_error.h"
 #include "sireflect_registry.h"
 
 #include <ctype.h>
@@ -228,6 +229,7 @@ sireflect_parser_fail_at(sireflect_parser_t *parser, sireflect_token_t token, co
     if (parser->fail_fast) {
         sireflect_assert(false, parser->message);
     }
+    sireflect_error_set(parser->message);
 }
 
 static inline void sireflect_parser_unexpected(
@@ -257,6 +259,7 @@ static inline void sireflect_parser_unexpected(
     if (parser->fail_fast) {
         sireflect_assert(false, parser->message);
     }
+    sireflect_error_set(parser->message);
 }
 
 static inline void sireflect_parser_advance(sireflect_parser_t *parser) {
@@ -696,6 +699,7 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
         if (parser->fail_fast) {
             sireflect_assert(false, parser->message);
         }
+        sireflect_error_set(parser->message);
         return SIREFLECT_INVALID_HANDLE;
     }
 
@@ -891,11 +895,32 @@ bool sireflect_parse_struct_fields(
         return false;
     }
 
-    sireflect_indebug({
+#ifndef NDEBUG
+    {
         const size_t computed_size = sireflect_align_up(offset, struct_align);
-        sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");
-        sireflect_assert(max_align <= struct_align, "computed field alignment exceeds struct alignment");
-    });
+        if (computed_size != struct_size) {
+            if (fail_fast) {
+                sireflect_assert(false, "computed struct size does not match C layout");
+            }
+            sireflect_error_set("computed struct size does not match C layout");
+            sireflect_free_parsed_fields(fields, field_count);
+            *out_fields = NULL;
+            *out_field_count = 0;
+            return false;
+        }
+
+        if (max_align > struct_align) {
+            if (fail_fast) {
+                sireflect_assert(false, "computed field alignment exceeds struct alignment");
+            }
+            sireflect_error_set("computed field alignment exceeds struct alignment");
+            sireflect_free_parsed_fields(fields, field_count);
+            *out_fields = NULL;
+            *out_field_count = 0;
+            return false;
+        }
+    }
+#endif
 
     *out_fields = fields;
     *out_field_count = field_count;

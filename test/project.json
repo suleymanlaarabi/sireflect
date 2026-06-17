@@ -85,7 +85,10 @@
           "array_errors_return_invalid",
           "declarator_errors_return_invalid",
           "existing_incompatible_type_returns_invalid",
-          "registry_usable_after_failure"
+          "registry_usable_after_failure",
+          "error_message_persists",
+          "error_cleared_by_public_call",
+          "error_cleared_by_registry_fini"
         ]
       },
       {

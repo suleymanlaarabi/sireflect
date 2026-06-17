@@ -1,8 +1,12 @@
+#include "sireflect_error.h"
+
 #include <sireflect.h>
 #include <string.h>
 
 const sireflect_field_info_t *
 sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
+    sireflect_error_clear();
+
     sireflect_assert(field != NULL, "field name must not be NULL");
 
     const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
@@ -17,6 +21,8 @@ sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, c
 
 sireflect_handle_t
 sireflect_field_type(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
+    sireflect_error_clear();
+
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
     sireflect_assert(info != NULL, "field must exist");
     return info->type;
@@ -24,6 +30,8 @@ sireflect_field_type(const sireflect_registry_t *reg, sireflect_handle_t type, c
 
 size_t
 sireflect_field_size(const sireflect_registry_t *reg, sireflect_handle_t ref, const char *field) {
+    sireflect_error_clear();
+
     const sireflect_field_info_t *info = sireflect_field_info(reg, ref, field);
     sireflect_assert(info != NULL, "field must exist");
     return info->size;
@@ -35,6 +43,8 @@ const void *sireflect_field_ptr(
     const void *obj,
     const char *field
 ) {
+    sireflect_error_clear();
+
     sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
@@ -49,6 +59,8 @@ void *sireflect_field_mut_ptr(
     void *obj,
     const char *field
 ) {
+    sireflect_error_clear();
+
     sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
@@ -64,6 +76,8 @@ int sireflect_field_copy(
     const char *field,
     const void *value
 ) {
+    sireflect_error_clear();
+
     sireflect_assert(value != NULL, "source value pointer must not be NULL");
 
     const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);

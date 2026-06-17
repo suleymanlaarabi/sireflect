@@ -44,6 +44,9 @@ void sireflect_test_impl_try_register_array_errors_return_invalid(void);
 void sireflect_test_impl_try_register_declarator_errors_return_invalid(void);
 void sireflect_test_impl_try_register_existing_incompatible_type_returns_invalid(void);
 void sireflect_test_impl_try_register_registry_usable_after_failure(void);
+void sireflect_test_impl_try_register_error_message_persists(void);
+void sireflect_test_impl_try_register_error_cleared_by_public_call(void);
+void sireflect_test_impl_try_register_error_cleared_by_registry_fini(void);
 
 void sireflect_test_impl_unknown_type_asserts(void);
 void sireflect_test_impl_empty_array_asserts(void);
