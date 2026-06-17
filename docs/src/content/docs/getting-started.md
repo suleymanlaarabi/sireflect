@@ -64,6 +64,10 @@ captured field source, `sizeof(Position)`, and `_Alignof(Position)`.
 Registering the same struct again returns the existing handle after validating
 that the size and alignment still match.
 
+Use `sireflect_try_register_struct` directly when invalid reflected source
+should return `SIREFLECT_INVALID_HANDLE` instead of triggering the strict debug
+assertions used by `sireflect_register_struct`.
+
 ## Inspect fields
 
 ```c

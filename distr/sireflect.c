@@ -98,14 +98,15 @@ int sireflect_field_copy(
 #ifndef SIREFLECT_PARSER_H
 #define SIREFLECT_PARSER_H
 
-void sireflect_parse_struct_fields(
+bool sireflect_parse_struct_fields(
     sireflect_registry_t *reg,
     const char *struct_name,
     const char *fields_src,
     sireflect_field_info_t **out_fields,
     size_t *out_field_count,
     size_t struct_size,
-    size_t struct_align
+    size_t struct_align,
+    bool fail_fast
 );
 
 #endif
@@ -187,6 +188,8 @@ typedef struct {
     size_t column;
     sireflect_token_t current;
     char message[512];
+    bool failed;
+    bool fail_fast;
 } sireflect_parser_t;
 
 typedef struct {
@@ -235,7 +238,10 @@ static inline void sireflect_type_spec_set2(
         (int)second.len,
         second.start
     );
-    sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    (void)len;
+    sireflect_indebug(
+        sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    )
     type->start = NULL;
     type->len = 0;
     type->has_name = 1;
@@ -260,7 +266,10 @@ static inline void sireflect_type_spec_set3(
         (int)third.len,
         third.start
     );
-    sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    (void)len;
+    sireflect_indebug(
+        sireflect_assert(len > 0 && (size_t)len < sizeof(type->name), "type specifier is too long");
+    );
     type->start = NULL;
     type->len = 0;
     type->has_name = 1;
@@ -360,7 +369,10 @@ sireflect_parser_fail_at(sireflect_parser_t *parser, sireflect_token_t token, co
         actual
     );
 
-    sireflect_assert(false, parser->message);
+    parser->failed = true;
+    if (parser->fail_fast) {
+        sireflect_assert(false, parser->message);
+    }
 }
 
 static inline void sireflect_parser_unexpected(
@@ -386,7 +398,10 @@ static inline void sireflect_parser_unexpected(
         actual
     );
 
-    sireflect_assert(false, parser->message);
+    parser->failed = true;
+    if (parser->fail_fast) {
+        sireflect_assert(false, parser->message);
+    }
 }
 
 static inline void sireflect_parser_advance(sireflect_parser_t *parser) {
@@ -488,8 +503,12 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
     }
 }
 
-static inline void
-sireflect_parser_init(sireflect_parser_t *parser, const char *struct_name, const char *src) {
+static inline void sireflect_parser_init(
+    sireflect_parser_t *parser,
+    const char *struct_name,
+    const char *src,
+    bool fail_fast
+) {
     sireflect_assert(parser != NULL, "parser must not be NULL");
     sireflect_assert(struct_name != NULL, "parser struct name must not be NULL");
     sireflect_assert(src != NULL, "parser source must not be NULL");
@@ -502,6 +521,8 @@ sireflect_parser_init(sireflect_parser_t *parser, const char *struct_name, const
     parser->line = 1;
     parser->column = 1;
     parser->message[0] = '\0';
+    parser->failed = false;
+    parser->fail_fast = fail_fast;
     sireflect_parser_next(parser);
 }
 
@@ -510,6 +531,7 @@ sireflect_expect(sireflect_parser_t *parser, sireflect_token_kind_t kind, const 
     sireflect_token_t token = parser->current;
     if (token.kind != kind) {
         sireflect_parser_unexpected(parser, kind, context);
+        return token;
     }
     sireflect_parser_next(parser);
     return token;
@@ -519,6 +541,7 @@ static inline sireflect_token_t sireflect_expect_field_name(sireflect_parser_t *
     sireflect_token_t token = parser->current;
     if (token.kind != sireflect_token_ident || sireflect_token_is_qualifier(token)) {
         sireflect_parser_unexpected(parser, sireflect_token_ident, "field name");
+        return token;
     }
 
     parser->field_start = token.start;
@@ -560,10 +583,14 @@ static inline sireflect_type_spec_t sireflect_parse_type_specifier(sireflect_par
     sireflect_token_t first = sireflect_expect(parser, sireflect_token_ident, "field type");
     sireflect_type_spec_t type;
     sireflect_type_spec_set(&type, first);
+    if (parser->failed) {
+        return type;
+    }
 
     if (sireflect_token_is_ident(first, "signed")) {
         if (!sireflect_token_is_ident(parser->current, "char")) {
             sireflect_fail_unsupported_type_specifier(parser, parser->current);
+            return type;
         }
 
         sireflect_token_t second = parser->current;
@@ -608,6 +635,7 @@ static inline sireflect_type_spec_t sireflect_parse_type_specifier(sireflect_par
         }
 
         sireflect_fail_unsupported_type_specifier(parser, second);
+        return type;
     }
 
     return type;
@@ -631,12 +659,14 @@ sireflect_parse_array_count(sireflect_parser_t *parser, sireflect_token_t token)
         const unsigned int digit = (unsigned int)(token.start[i] - '0');
         if (count > (SIZE_MAX - digit) / 10) {
             sireflect_parser_fail_at(parser, token, "array element count overflows size_t");
+            return 0;
         }
         count = count * 10 + digit;
     }
 
     if (count == 0) {
         sireflect_parser_fail_at(parser, token, "array element count must be greater than zero");
+        return 0;
     }
 
     return count;
@@ -651,6 +681,7 @@ sireflect_parse_array_dimensions(sireflect_parser_t *parser, size_t *counts, siz
 
         if (parser->current.kind == sireflect_token_rbracket) {
             sireflect_parser_fail_at(parser, parser->current, "array element count is required");
+            return count;
         }
 
         if (parser->current.kind != sireflect_token_integer) {
@@ -659,6 +690,7 @@ sireflect_parse_array_dimensions(sireflect_parser_t *parser, size_t *counts, siz
                 parser->current,
                 "array element count must be a positive integer literal"
             );
+            return count;
         }
 
         sireflect_token_t count_token = parser->current;
@@ -666,13 +698,18 @@ sireflect_parse_array_dimensions(sireflect_parser_t *parser, size_t *counts, siz
 
         if (parser->current.kind != sireflect_token_rbracket) {
             sireflect_parser_fail_at(parser, parser->current, "expected ']' after array element count");
+            return count;
         }
 
         if (count >= max_count) {
             sireflect_parser_fail_at(parser, count_token, "too many array dimensions");
+            return count;
         }
 
         counts[count++] = sireflect_parse_array_count(parser, count_token);
+        if (parser->failed) {
+            return count;
+        }
         sireflect_parser_next(parser);
     }
 
@@ -690,6 +727,9 @@ static inline void sireflect_parse_declarator_shape(sireflect_parser_t *parser) 
     }
 
     sireflect_expect_field_name(parser);
+    if (parser->failed) {
+        return;
+    }
     (void)sireflect_parse_array_dimensions(parser, counts, SIREFLECT_MAX_ARRAY_DIMS);
 }
 
@@ -698,9 +738,15 @@ static inline size_t sireflect_parse_declaration_shape(sireflect_parser_t *parse
 
     (void)sireflect_parse_qualifiers(parser);
     (void)sireflect_parse_type_specifier(parser);
+    if (parser->failed) {
+        return 0;
+    }
 
     for (;;) {
         sireflect_parse_declarator_shape(parser);
+        if (parser->failed) {
+            return 0;
+        }
         count++;
 
         if (parser->current.kind != sireflect_token_comma) {
@@ -711,24 +757,45 @@ static inline size_t sireflect_parse_declaration_shape(sireflect_parser_t *parse
     }
 
     sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
+    if (parser->failed) {
+        return 0;
+    }
     return count;
 }
 
-static inline size_t sireflect_count_fields(const char *struct_name, const char *fields_src) {
+static inline bool sireflect_count_fields(
+    const char *struct_name,
+    const char *fields_src,
+    bool fail_fast,
+    size_t *out_count
+) {
     sireflect_parser_t parser;
     size_t count = 0;
 
-    sireflect_parser_init(&parser, struct_name, fields_src);
+    sireflect_parser_init(&parser, struct_name, fields_src, fail_fast);
     sireflect_expect(&parser, sireflect_token_lbrace, "struct field list start");
+    if (parser.failed) {
+        return false;
+    }
 
     while (parser.current.kind != sireflect_token_rbrace) {
         count += sireflect_parse_declaration_shape(&parser);
+        if (parser.failed) {
+            return false;
+        }
     }
 
     sireflect_expect(&parser, sireflect_token_rbrace, "struct field list end");
+    if (parser.failed) {
+        return false;
+    }
     sireflect_expect(&parser, sireflect_token_end, "trailing input after struct field list");
+    if (parser.failed) {
+        return false;
+    }
 
-    return count;
+    *out_count = count;
+    return true;
 }
 
 static inline size_t sireflect_align_up(size_t value, size_t align) {
@@ -770,7 +837,11 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
             type.column
         );
         free(owned_name);
-        sireflect_assert(false, parser->message);
+        parser->failed = true;
+        if (parser->fail_fast) {
+            sireflect_assert(false, parser->message);
+        }
+        return SIREFLECT_INVALID_HANDLE;
     }
 
     free(owned_name);
@@ -799,10 +870,19 @@ static inline void sireflect_parse_declarator(
     }
 
     sireflect_token_t name_token = sireflect_expect_field_name(parser);
+    if (parser->failed) {
+        return;
+    }
     array_dim_count =
         sireflect_parse_array_dimensions(parser, array_counts, SIREFLECT_MAX_ARRAY_DIMS);
+    if (parser->failed) {
+        return;
+    }
 
     sireflect_handle_t field_type = sireflect_resolve_field_type(reg, parser, type);
+    if (parser->failed) {
+        return;
+    }
 
     if (is_pointer) {
         field_type = sireflect_registry_get_or_add_pointer_type(reg, field_type);
@@ -838,6 +918,9 @@ static inline size_t sireflect_parse_declaration(
     size_t count = 0;
     uint32_t qualifiers = sireflect_parse_qualifiers(parser);
     sireflect_type_spec_t type = sireflect_parse_type_specifier(parser);
+    if (parser->failed) {
+        return 0;
+    }
 
     for (;;) {
         sireflect_parse_declarator(
@@ -849,6 +932,9 @@ static inline size_t sireflect_parse_declaration(
             offset,
             max_align
         );
+        if (parser->failed) {
+            return 0;
+        }
         count++;
 
         if (parser->current.kind != sireflect_token_comma) {
@@ -859,25 +945,50 @@ static inline size_t sireflect_parse_declaration(
     }
 
     sireflect_expect(parser, sireflect_token_semicolon, "field terminator");
+    if (parser->failed) {
+        return 0;
+    }
     return count;
 }
 
-void sireflect_parse_struct_fields(
+static inline void sireflect_free_parsed_fields(sireflect_field_info_t *fields, size_t field_count) {
+    if (fields == NULL) {
+        return;
+    }
+
+    for (size_t i = 0; i < field_count; i++) {
+        free((char *)fields[i].name);
+    }
+
+    free(fields);
+}
+
+bool sireflect_parse_struct_fields(
     sireflect_registry_t *reg,
     const char *struct_name,
     const char *fields_src,
     sireflect_field_info_t **out_fields,
     size_t *out_field_count,
     size_t struct_size,
-    size_t struct_align
+    size_t struct_align,
+    bool fail_fast
 ) {
+    (void)struct_size;
+    (void)struct_align;
+
     sireflect_assert(reg != NULL, "registry must not be NULL");
     sireflect_assert(struct_name != NULL, "struct name must not be NULL");
     sireflect_assert(fields_src != NULL, "field source must not be NULL");
     sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
     sireflect_assert(out_field_count != NULL, "output field count pointer must not be NULL");
 
-    const size_t field_count = sireflect_count_fields(struct_name, fields_src);
+    size_t field_count = 0;
+    if (!sireflect_count_fields(struct_name, fields_src, fail_fast, &field_count)) {
+        *out_fields = NULL;
+        *out_field_count = 0;
+        return false;
+    }
+
     sireflect_field_info_t *fields = NULL;
 
     if (field_count != 0) {
@@ -886,25 +997,54 @@ void sireflect_parse_struct_fields(
     }
 
     sireflect_parser_t parser;
-    sireflect_parser_init(&parser, struct_name, fields_src);
+    sireflect_parser_init(&parser, struct_name, fields_src, fail_fast);
     sireflect_expect(&parser, sireflect_token_lbrace, "struct field list start");
+    if (parser.failed) {
+        sireflect_free_parsed_fields(fields, field_count);
+        *out_fields = NULL;
+        *out_field_count = 0;
+        return false;
+    }
 
     size_t offset = 0;
     size_t max_align = 1;
 
     for (size_t i = 0; i < field_count;) {
-        i += sireflect_parse_declaration(reg, &parser, &fields[i], &offset, &max_align);
+        const size_t parsed_count =
+            sireflect_parse_declaration(reg, &parser, &fields[i], &offset, &max_align);
+        if (parser.failed) {
+            sireflect_free_parsed_fields(fields, field_count);
+            *out_fields = NULL;
+            *out_field_count = 0;
+            return false;
+        }
+        i += parsed_count;
     }
 
     sireflect_expect(&parser, sireflect_token_rbrace, "struct field list end");
+    if (parser.failed) {
+        sireflect_free_parsed_fields(fields, field_count);
+        *out_fields = NULL;
+        *out_field_count = 0;
+        return false;
+    }
     sireflect_expect(&parser, sireflect_token_end, "trailing input after struct field list");
+    if (parser.failed) {
+        sireflect_free_parsed_fields(fields, field_count);
+        *out_fields = NULL;
+        *out_field_count = 0;
+        return false;
+    }
 
-    const size_t computed_size = sireflect_align_up(offset, struct_align);
-    sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");
-    sireflect_assert(max_align <= struct_align, "computed field alignment exceeds struct alignment");
+    sireflect_indebug({
+        const size_t computed_size = sireflect_align_up(offset, struct_align);
+        sireflect_assert(computed_size == struct_size, "computed struct size does not match C layout");
+        sireflect_assert(max_align <= struct_align, "computed field alignment exceeds struct alignment");
+    });
 
     *out_fields = fields;
     *out_field_count = field_count;
+    return true;
 }
 
 #include <stdint.h>
@@ -1198,34 +1338,37 @@ sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle)
 }
 
 sireflect_handle_t
-sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
-    sireflect_assert(desc != NULL, "struct descriptor must not be NULL");
-    sireflect_assert(desc->name != NULL, "struct descriptor name must not be NULL");
-    sireflect_assert(desc->fields != NULL, "struct descriptor fields must not be NULL");
-    sireflect_assert(desc->align != 0, "struct descriptor alignment must not be zero");
+sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
+    if (reg == NULL || desc == NULL || desc->name == NULL || desc->fields == NULL ||
+        desc->align == 0) {
+        return SIREFLECT_INVALID_HANDLE;
+    }
 
     sireflect_handle_t existing = sireflect_type_by_name(reg, desc->name);
     if (existing != SIREFLECT_INVALID_HANDLE) {
         const sireflect_type_info_t *type = sireflect_type_info(reg, existing);
-        sireflect_assert(type->kind == sireflect_kind_struct, "existing type must be a struct");
-        sireflect_assert(type->size == desc->size, "existing struct size must match descriptor");
-        sireflect_assert(type->align == desc->align, "existing struct alignment must match descriptor");
+        if (type->kind != sireflect_kind_struct || type->size != desc->size ||
+            type->align != desc->align) {
+            return SIREFLECT_INVALID_HANDLE;
+        }
         return existing;
     }
 
     sireflect_field_info_t *parsed_fields = NULL;
     size_t field_count = 0;
 
-    sireflect_parse_struct_fields(
+    if (!sireflect_parse_struct_fields(
         reg,
         desc->name,
         desc->fields,
         &parsed_fields,
         &field_count,
         desc->size,
-        desc->align
-    );
+        desc->align,
+        false
+    )) {
+        return SIREFLECT_INVALID_HANDLE;
+    }
 
     return sireflect_registry_add_type(
         reg,
@@ -1236,6 +1379,66 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
         parsed_fields,
         field_count
     );
+}
+
+sireflect_handle_t
+sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(desc != NULL, "struct descriptor must not be NULL");
+    sireflect_assert(desc->name != NULL, "struct descriptor name must not be NULL");
+    sireflect_assert(desc->fields != NULL, "struct descriptor fields must not be NULL");
+    sireflect_assert(desc->align != 0, "struct descriptor alignment must not be zero");
+
+    sireflect_handle_t handle = SIREFLECT_INVALID_HANDLE;
+
+    if (reg != NULL && desc != NULL && desc->name != NULL && desc->fields != NULL &&
+        desc->align != 0) {
+        sireflect_handle_t existing = sireflect_type_by_name(reg, desc->name);
+        if (existing != SIREFLECT_INVALID_HANDLE) {
+            const sireflect_type_info_t *type = sireflect_type_info(reg, existing);
+            if (type->kind != sireflect_kind_struct || type->size != desc->size ||
+                type->align != desc->align) {
+                sireflect_assert(type->kind == sireflect_kind_struct, "existing type must be a struct");
+                sireflect_assert(
+                    type->size == desc->size,
+                    "existing struct size must match descriptor"
+                );
+                sireflect_assert(
+                    type->align == desc->align,
+                    "existing struct alignment must match descriptor"
+                );
+                return SIREFLECT_INVALID_HANDLE;
+            }
+            return existing;
+        }
+
+        sireflect_field_info_t *parsed_fields = NULL;
+        size_t field_count = 0;
+
+        if (sireflect_parse_struct_fields(
+                reg,
+                desc->name,
+                desc->fields,
+                &parsed_fields,
+                &field_count,
+                desc->size,
+                desc->align,
+                true
+            )) {
+            handle = sireflect_registry_add_type(
+                reg,
+                desc->name,
+                sireflect_kind_struct,
+                desc->size,
+                desc->align,
+                parsed_fields,
+                field_count
+            );
+        }
+    }
+
+    sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "failed to register struct");
+    return handle;
 }
 
 const char *sireflect_kind_name(sireflect_kind_t kind) {

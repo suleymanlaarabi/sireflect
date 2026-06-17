@@ -192,6 +192,13 @@ void sireflect_registry_fini(sireflect_registry_t *reg);
 sireflect_handle_t
 sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc);
 
+/*
+ * Tries to register a struct type from its textual field list.
+ * Returns SIREFLECT_INVALID_HANDLE when the descriptor or reflected field syntax is invalid.
+ */
+sireflect_handle_t
+sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc);
+
 /* Finds a type handle by name, or SIREFLECT_INVALID_HANDLE if missing. */
 sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name);
 

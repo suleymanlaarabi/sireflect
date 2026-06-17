@@ -51,6 +51,15 @@ void type_specifiers_multi_token_builtin_registry(void);
 void type_specifiers_multi_token_fields(void);
 void type_specifiers_multi_token_arrays_and_pointers(void);
 
+// Testsuite 'try_register'
+void try_register_valid_struct(void);
+void try_register_invalid_descriptor(void);
+void try_register_unknown_type_returns_invalid(void);
+void try_register_array_errors_return_invalid(void);
+void try_register_declarator_errors_return_invalid(void);
+void try_register_existing_incompatible_type_returns_invalid(void);
+void try_register_registry_usable_after_failure(void);
+
 // Testsuite 'parser_errors'
 void parser_errors_unknown_type_asserts(void);
 void parser_errors_empty_array_asserts(void);
@@ -208,6 +217,37 @@ bake_test_case type_specifiers_testcases[] = {
     }
 };
 
+bake_test_case try_register_testcases[] = {
+    {
+        "valid_struct",
+        try_register_valid_struct
+    },
+    {
+        "invalid_descriptor",
+        try_register_invalid_descriptor
+    },
+    {
+        "unknown_type_returns_invalid",
+        try_register_unknown_type_returns_invalid
+    },
+    {
+        "array_errors_return_invalid",
+        try_register_array_errors_return_invalid
+    },
+    {
+        "declarator_errors_return_invalid",
+        try_register_declarator_errors_return_invalid
+    },
+    {
+        "existing_incompatible_type_returns_invalid",
+        try_register_existing_incompatible_type_returns_invalid
+    },
+    {
+        "registry_usable_after_failure",
+        try_register_registry_usable_after_failure
+    }
+};
+
 bake_test_case parser_errors_testcases[] = {
     {
         "unknown_type_asserts",
@@ -335,6 +375,13 @@ static bake_test_suite suites[] = {
         type_specifiers_testcases
     },
     {
+        "try_register",
+        NULL,
+        NULL,
+        7,
+        try_register_testcases
+    },
+    {
         "parser_errors",
         NULL,
         NULL,
@@ -344,5 +391,5 @@ static bake_test_suite suites[] = {
 };
 
 int main(int argc, char *argv[]) {
-    return bake_test_run("sireflect.test", argc, argv, suites, 8);
+    return bake_test_run("sireflect.test", argc, argv, suites, 9);
 }

@@ -77,6 +77,18 @@
         ]
       },
       {
+        "id": "try_register",
+        "testcases": [
+          "valid_struct",
+          "invalid_descriptor",
+          "unknown_type_returns_invalid",
+          "array_errors_return_invalid",
+          "declarator_errors_return_invalid",
+          "existing_incompatible_type_returns_invalid",
+          "registry_usable_after_failure"
+        ]
+      },
+      {
         "id": "parser_errors",
         "testcases": [
           "unknown_type_asserts",

@@ -949,6 +949,170 @@ void sireflect_test_impl_multi_token_arrays_and_pointers(void) {
     sireflect_registry_fini(reg);
 }
 
+void sireflect_test_impl_try_register_valid_struct(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect_try_register_struct(reg, &sireflect_desc(Position));
+
+    test_assert(type != SIREFLECT_INVALID_HANDLE);
+    test_uint(type, sireflect_type_by_name(reg, "Position"));
+
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    test_uint(fields->field_count, 2);
+    test_str(fields->fields[0].name, "x");
+    test_str(fields->fields[1].name, "y");
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_invalid_descriptor(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    test_uint(sireflect_try_register_struct(NULL, &sireflect_desc(Position)), SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_try_register_struct(reg, NULL), SIREFLECT_INVALID_HANDLE);
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ NULL, "{ f32 x; }", sizeof(f32), _Alignof(f32) }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ "Bad", NULL, sizeof(f32), _Alignof(f32) }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ "Bad", "{ f32 x; }", sizeof(f32), 0 }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_unknown_type_returns_invalid(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    sireflect_handle_t type = sireflect_try_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
+    );
+
+    test_uint(type, SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_type_by_name(reg, "Bad"), SIREFLECT_INVALID_HANDLE);
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_array_errors_return_invalid(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ "BadEmptyArray", "{ f32 values[]; }", sizeof(ptr), _Alignof(ptr) }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ "BadZeroArray", "{ f32 values[0]; }", sizeof(ptr), _Alignof(ptr) }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ "BadAlphaArray", "{ f32 values[abc]; }", sizeof(ptr), _Alignof(ptr) }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ "BadArrayEnd", "{ f32 values[4; }", sizeof(ptr), _Alignof(ptr) }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_declarator_errors_return_invalid(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect(reg, Position);
+
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){ "BadDecl", "{ f32 x, ; }", sizeof(ptr), _Alignof(ptr) }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){
+                "BadPointerQualifier",
+                "{ Position * const stable_parent; }",
+                sizeof(ptr),
+                _Alignof(ptr),
+            }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_uint(
+        sireflect_try_register_struct(
+            reg,
+            &(sireflect_struct_desc_t){
+                "BadTypeSpecifier",
+                "{ unsigned signed int flags; }",
+                sizeof(unsigned int),
+                _Alignof(unsigned int),
+            }
+        ),
+        SIREFLECT_INVALID_HANDLE
+    );
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_existing_incompatible_type_returns_invalid(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    sireflect_handle_t type = sireflect_try_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "int", "{ f32 x; }", sizeof(f32), _Alignof(f32) }
+    );
+
+    test_uint(type, SIREFLECT_INVALID_HANDLE);
+    test_assert(!sireflect_type_is_struct(sireflect_type_info(reg, sireflect_type_by_name(reg, "int"))));
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_registry_usable_after_failure(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    sireflect_handle_t failed = sireflect_try_register_struct(
+        reg,
+        &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
+    );
+    sireflect_handle_t position = sireflect_try_register_struct(reg, &sireflect_desc(Position));
+
+    test_uint(failed, SIREFLECT_INVALID_HANDLE);
+    test_assert(position != SIREFLECT_INVALID_HANDLE);
+    test_uint(position, sireflect_type_by_name(reg, "Position"));
+    test_uint(sireflect_type_by_name(reg, "Bad"), SIREFLECT_INVALID_HANDLE);
+
+    sireflect_registry_fini(reg);
+}
+
 void sireflect_test_impl_unknown_type_asserts(void) {
     test_expect_abort();
     register_unknown_type();

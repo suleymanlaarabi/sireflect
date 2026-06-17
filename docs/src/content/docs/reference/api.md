@@ -201,6 +201,11 @@ sireflect_handle_t sireflect_register_struct(
     sireflect_registry_t *reg,
     const sireflect_struct_desc_t *desc
 );
+
+sireflect_handle_t sireflect_try_register_struct(
+    sireflect_registry_t *reg,
+    const sireflect_struct_desc_t *desc
+);
 ```
 
 Registers a struct type from a descriptor containing its name, textual field
@@ -208,6 +213,12 @@ list, size, and alignment. Most user code should call the
 `sireflect(reg, TypeName)` macro instead.
 
 Returns the existing handle if the same struct was already registered.
+
+`sireflect_register_struct` is the strict API: invalid descriptors or reflected
+syntax fail through `sireflect_assert` in debug builds.
+`sireflect_try_register_struct` returns `SIREFLECT_INVALID_HANDLE` for those
+recoverable failures instead. Allocation failures remain non-recoverable
+assertions.
 
 ## Type lookup
 

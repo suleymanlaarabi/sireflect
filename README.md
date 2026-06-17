@@ -16,8 +16,8 @@ compiler plugin or an external code generator.
   `Position *items[8]`, and `f32 matrix[4][4]`.
 - Field metadata with name, type handle, byte offset, size, alignment, and
   leading `const` / `volatile` qualifiers.
-- Debug diagnostics through `sireflect_assert`, compiled out when `NDEBUG` is
-  defined.
+- Strict registration with debug diagnostics, plus recoverable registration
+  through `sireflect_try_register_struct`.
 
 ```c
 #include "sireflect.h"
@@ -79,8 +79,9 @@ TYPE *field[N];
 Pointer fields use typed pointer metadata. Use the explicit `ptr` alias when
 you need a raw, untyped pointer field.
 
-Unsupported syntax fails during registration with a debug assertion. This keeps
-the reflected metadata aligned with the real C layout instead of guessing.
+Unsupported syntax fails during strict registration with a debug assertion. Use
+`sireflect_try_register_struct` when invalid reflected source should return
+`SIREFLECT_INVALID_HANDLE` instead of aborting in debug builds.
 
 ## Documentation
 
