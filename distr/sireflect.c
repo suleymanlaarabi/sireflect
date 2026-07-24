@@ -62,8 +62,6 @@ const char *sireflect_error(void) {
     return sireflect_current_error;
 }
 
-#include <string.h>
-
 const sireflect_field_info_t *
 sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
     sireflect_error_clear();
@@ -205,8 +203,6 @@ sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_hand
 #include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define SIREFLECT_MAX_ARRAY_DIMS 16
 
@@ -1125,11 +1121,6 @@ bool sireflect_parse_struct_fields(
     *out_field_count = field_count;
     return true;
 }
-
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 static char *sireflect_dup_cstr(const char *str) {
     sireflect_assert(str != NULL, "string must not be NULL");

@@ -7,3 +7,4 @@ bin
 .clang-tidy
 .clangd
 compile_flags.txt
+deps/
