@@ -18,6 +18,7 @@ volatile TYPE field;
 const volatile TYPE field;
 TYPE a, b;
 TYPE *field;
+TYPE (*field)();
 TYPE *a, *b;
 TYPE a, *b;
 TYPE field[N];
@@ -68,6 +69,11 @@ handle, size, alignment, or offset.
 For `TYPE *field`, Sireflect stores the field type as a typed pointer. The
 pointed type can be inspected with `sireflect_type_pointee`. Use `ptr field;`
 when you need raw, untyped pointer metadata.
+
+For `TYPE (*field)()`, Sireflect stores the field as a function-pointer type.
+Its `kind` is `sireflect_kind_function_pointer`, its size and alignment match
+`ptr`, and its `element_type` is the registered return type. Only empty parameter
+lists are currently supported.
 
 For `TYPE field[N]`, Sireflect stores the field type as an array type. The array
 type records the element type handle and element count. Multi-dimensional arrays

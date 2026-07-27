@@ -8,3 +8,4 @@ bin
 .clangd
 compile_flags.txt
 deps/
+example/

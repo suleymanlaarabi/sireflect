@@ -86,7 +86,8 @@ typedef enum {
     sireflect_kind_unsigned_int,
     sireflect_kind_unsigned_long,
     sireflect_kind_long_long,
-    sireflect_kind_unsigned_long_long
+    sireflect_kind_unsigned_long_long,
+    sireflect_kind_function_pointer
 } sireflect_kind_t;
 ```
 
@@ -101,7 +102,7 @@ invalid kind value.
 `sireflect_is_numeric` returns `true` for integer and floating-point kinds,
 including native C numeric kinds such as `char`, `short`, `int`, `long`,
 `unsigned int`, and `long long`. It returns `false` for `bool`, `ptr`, typed
-pointers, structs, arrays, and invalid kind values.
+pointers, function pointers, structs, arrays, and invalid kind values.
 
 ## Field qualifiers
 
@@ -160,7 +161,9 @@ empty field list.
 Array types have `kind == sireflect_kind_array`, `element_type` set to the
 element type handle, and `element_count` set to the fixed array length. Typed
 pointer types have `kind == sireflect_kind_pointer`, `element_type` set to the
-pointee type handle, and `element_count == 0`. Other types use
+pointee type handle, and `element_count == 0`. Function-pointer types have
+`kind == sireflect_kind_function_pointer`, `element_type` set to the return
+type handle, and `element_count == 0`. Other types use
 `SIREFLECT_INVALID_HANDLE` and `0` for those members.
 
 ## Struct declaration macros

@@ -148,6 +148,48 @@ sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_
     return pointer_type;
 }
 
+sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
+    sireflect_registry_t *reg,
+    sireflect_handle_t return_type
+) {
+    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(return_type != SIREFLECT_INVALID_HANDLE, "function return type must be valid");
+
+    for (size_t i = 0; i < reg->type_count; i++) {
+        const sireflect_type_info_t *type = &reg->types[i];
+        if (type->kind == sireflect_kind_function_pointer && type->element_type == return_type) {
+            return sireflect_handle_from_index(i);
+        }
+    }
+
+    const sireflect_type_info_t *return_info = sireflect_registry_const_type_at(reg, return_type);
+    sireflect_assert(return_info != NULL, "function return type metadata must exist");
+
+    const int name_len = snprintf(NULL, 0, "%s(*)()", return_info->name);
+    sireflect_assert(name_len > 0, "failed to format function pointer type name");
+
+    char *name = malloc((size_t)name_len + 1);
+    sireflect_assert(name != NULL, "failed to allocate function pointer type name");
+    snprintf(name, (size_t)name_len + 1, "%s(*)()", return_info->name);
+
+    sireflect_handle_t function_pointer_type = sireflect_registry_add_type(
+        reg,
+        name,
+        sireflect_kind_function_pointer,
+        sizeof(ptr),
+        _Alignof(ptr),
+        NULL,
+        0
+    );
+    free(name);
+
+    sireflect_type_info_t *function_pointer_info =
+        sireflect_registry_type_at(reg, function_pointer_type);
+    function_pointer_info->element_type = return_type;
+
+    return function_pointer_type;
+}
+
 sireflect_handle_t sireflect_registry_get_or_add_array_type(
     sireflect_registry_t *reg,
     sireflect_handle_t element_type,

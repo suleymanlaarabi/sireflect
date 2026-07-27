@@ -126,7 +126,8 @@ typedef enum {
     sireflect_kind_unsigned_int,
     sireflect_kind_unsigned_long,
     sireflect_kind_long_long,
-    sireflect_kind_unsigned_long_long
+    sireflect_kind_unsigned_long_long,
+    sireflect_kind_function_pointer
 } sireflect_kind_t;
 
 /* Returns a stable string for a kind, or "unknown" for an invalid kind value.
@@ -186,7 +187,7 @@ typedef struct {
     /* Fields owned by this type. Empty for non-struct types. */
     sireflect_fields_t fields;
 
-    /* Element type for array types or pointee type for pointer types. */
+    /* Element type for arrays, pointee type for pointers, or return type for function pointers. */
     sireflect_handle_t element_type;
 
     /* Element count for array types, otherwise 0. */

@@ -57,6 +57,8 @@ const char *sireflect_kind_name(sireflect_kind_t kind) {
         return "long long";
     case sireflect_kind_unsigned_long_long:
         return "unsigned long long";
+    case sireflect_kind_function_pointer:
+        return "function pointer";
     }
 
     return "unknown";
@@ -93,6 +95,7 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
     case sireflect_kind_pointer:
     case sireflect_kind_struct:
     case sireflect_kind_array:
+    case sireflect_kind_function_pointer:
         return false;
     }
 
@@ -144,7 +147,7 @@ bool sireflect_type_is_pointer(const sireflect_type_info_t *info) {
     sireflect_error_clear();
 
     sireflect_assert(info != NULL, "type metadata must not be NULL");
-    return info->kind == sireflect_kind_pointer;
+    return info->kind == sireflect_kind_pointer || info->kind == sireflect_kind_function_pointer;
 }
 
 sireflect_handle_t
@@ -170,6 +173,9 @@ sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref) 
     sireflect_error_clear();
 
     const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
-    sireflect_assert(type->kind == sireflect_kind_pointer, "type must be a typed pointer");
+    sireflect_assert(
+        type->kind == sireflect_kind_pointer || type->kind == sireflect_kind_function_pointer,
+        "type must be a typed pointer"
+    );
     return type->element_type;
 }

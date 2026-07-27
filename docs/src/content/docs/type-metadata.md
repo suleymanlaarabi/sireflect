@@ -51,11 +51,11 @@ printf("%s size=%zu align=%zu\n", info->name, info->size, info->align);
 | Member | Meaning |
 | --- | --- |
 | `name` | Reflected type name. |
-| `kind` | Built-in kind, `sireflect_kind_struct`, `sireflect_kind_array`, or `sireflect_kind_pointer`. |
+| `kind` | Built-in kind, `sireflect_kind_struct`, `sireflect_kind_array`, `sireflect_kind_pointer`, or `sireflect_kind_function_pointer`. |
 | `size` | Size in bytes. |
 | `align` | Alignment in bytes. |
 | `fields` | Field list for struct types, empty for non-struct types. |
-| `element_type` | Element type handle for array types, pointee type handle for typed pointer types, otherwise `SIREFLECT_INVALID_HANDLE`. |
+| `element_type` | Element type handle for arrays, pointee type handle for typed pointers, or return type handle for function pointers; otherwise `SIREFLECT_INVALID_HANDLE`. |
 | `element_count` | Element count for array types, otherwise `0`. Pointer types also use `0`. |
 
 Convenience functions are also available:
@@ -100,11 +100,14 @@ sireflect_kind_unsigned_int
 sireflect_kind_unsigned_long
 sireflect_kind_long_long
 sireflect_kind_unsigned_long_long
+sireflect_kind_function_pointer
 ```
 
 For custom structs, `kind` is always `sireflect_kind_struct`.
 For fixed-size arrays, `kind` is `sireflect_kind_array`.
 For typed pointers, `kind` is `sireflect_kind_pointer`.
+For function-pointer fields such as `Position (*ui)()`, `kind` is
+`sireflect_kind_function_pointer`; `element_type` stores the return type.
 Multi-token built-in type names keep their own native C kind values and native
 `sizeof` / `_Alignof` metadata.
 

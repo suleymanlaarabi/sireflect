@@ -22,6 +22,9 @@ SIREFLECT_STRUCT(Mixed, {
 
 SIREFLECT_STRUCT(WithPtr, { Position *pos; });
 
+
+SIREFLECT_STRUCT(WithFunctionPtr, { Position (*ui)(); });
+
 SIREFLECT_STRUCT(WithCharPtr, { char *name; });
 
 SIREFLECT_STRUCT(WithRawPtr, { ptr raw; });
@@ -326,6 +329,28 @@ void sireflect_test_impl_pointer_field(void) {
     sireflect_registry_fini(reg);
 }
 
+void sireflect_test_impl_function_pointer_field(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t return_type = sireflect(reg, Position);
+    sireflect_handle_t type = sireflect(reg, WithFunctionPtr);
+    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "ui");
+
+    test_not_null((void *)field);
+    test_uint(field->offset, offsetof(WithFunctionPtr, ui));
+    test_uint(field->size, sizeof(((WithFunctionPtr *)0)->ui));
+    test_uint(field->align, _Alignof(ptr));
+
+    const sireflect_type_info_t *function_pointer = sireflect_type_info(reg, field->type);
+    test_uint(function_pointer->kind, sireflect_kind_function_pointer);
+    test_assert(sireflect_type_is_pointer(function_pointer));
+    test_uint(function_pointer->element_type, return_type);
+    test_uint(function_pointer->element_type, sireflect_type_pointee(reg, field->type));
+    test_uint(function_pointer->element_count, 0);
+    test_str(function_pointer->name, "Position(*)()");
+
+    sireflect_registry_fini(reg);
+}
+
 void sireflect_test_impl_pointer_compat_field(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
     sireflect_handle_t type = sireflect(reg, WithCharPtr);
@@ -426,6 +451,7 @@ void sireflect_test_impl_kind_helpers(void) {
     test_str(sireflect_kind_name(sireflect_kind_pointer), "pointer");
     test_str(sireflect_kind_name(sireflect_kind_struct), "struct");
     test_str(sireflect_kind_name(sireflect_kind_array), "array");
+    test_str(sireflect_kind_name(sireflect_kind_function_pointer), "function pointer");
     test_str(sireflect_kind_name((sireflect_kind_t)999), "unknown");
 
     test_assert(sireflect_is_numeric(sireflect_kind_u8));
@@ -440,6 +466,7 @@ void sireflect_test_impl_kind_helpers(void) {
     test_assert(!sireflect_is_numeric(sireflect_kind_pointer));
     test_assert(!sireflect_is_numeric(sireflect_kind_struct));
     test_assert(!sireflect_is_numeric(sireflect_kind_array));
+    test_assert(!sireflect_is_numeric(sireflect_kind_function_pointer));
     test_assert(!sireflect_is_numeric((sireflect_kind_t)999));
 }
 

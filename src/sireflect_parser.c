@@ -18,6 +18,8 @@ typedef enum {
     sireflect_token_rbrace,
     sireflect_token_lbracket,
     sireflect_token_rbracket,
+    sireflect_token_lparen,
+    sireflect_token_rparen,
     sireflect_token_star,
     sireflect_token_comma,
     sireflect_token_semicolon,
@@ -147,6 +149,10 @@ static inline const char *sireflect_token_kind_name(sireflect_token_kind_t kind)
         return "'['";
     case sireflect_token_rbracket:
         return "']'";
+    case sireflect_token_lparen:
+        return "'('";
+    case sireflect_token_rparen:
+        return "')'";
     case sireflect_token_star:
         return "'*'";
     case sireflect_token_comma:
@@ -341,6 +347,14 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         parser->current =
             (sireflect_token_t){ sireflect_token_rbracket, &src[start], 1, start, line, column };
         return;
+    case '(':
+        parser->current =
+            (sireflect_token_t){ sireflect_token_lparen, &src[start], 1, start, line, column };
+        return;
+    case ')':
+        parser->current =
+            (sireflect_token_t){ sireflect_token_rparen, &src[start], 1, start, line, column };
+        return;
     case '*':
         parser->current = (sireflect_token_t){ sireflect_token_star, &src[start], 1, start, line, column };
         return;
@@ -356,7 +370,7 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
         sireflect_parser_fail_at(
             parser,
             parser->current,
-            "unsupported syntax in reflected struct; supported fields are '<type> <name>;', '<type> <name>, <name>;', '<type> *<name>;', '<type> <name>[N][M];', and '<type> *<name>[N];'"
+            "unsupported syntax in reflected struct; supported fields are '<type> <name>;', '<type> <name>, <name>;', '<type> *<name>;', '<type> (*<name>)();', '<type> <name>[N][M];', and '<type> *<name>[N];'"
         );
     }
 }
@@ -580,14 +594,21 @@ static inline void sireflect_parse_declarator_shape(sireflect_parser_t *parser) 
     parser->field_start = NULL;
     parser->field_len = 0;
 
-    if (parser->current.kind == sireflect_token_star) {
-        sireflect_parser_next(parser);
+    if (parser->current.kind == sireflect_token_lparen) {
+        sireflect_expect(parser, sireflect_token_lparen, "function pointer declarator");
+        sireflect_expect(parser, sireflect_token_star, "function pointer declarator");
+        (void)sireflect_expect_field_name(parser);
+        sireflect_expect(parser, sireflect_token_rparen, "function pointer declarator");
+        sireflect_expect(parser, sireflect_token_lparen, "function pointer parameters");
+        sireflect_expect(parser, sireflect_token_rparen, "function pointer parameters");
+    } else {
+        if (parser->current.kind == sireflect_token_star) {
+            sireflect_parser_next(parser);
+        }
+
+        sireflect_expect_field_name(parser);
     }
 
-    sireflect_expect_field_name(parser);
-    if (parser->failed) {
-        return;
-    }
     (void)sireflect_parse_array_dimensions(parser, counts, SIREFLECT_MAX_ARRAY_DIMS);
 }
 
@@ -720,18 +741,31 @@ static inline void sireflect_parse_declarator(
     parser->field_len = 0;
 
     int is_pointer = 0;
+    int is_function_pointer = 0;
     size_t array_counts[SIREFLECT_MAX_ARRAY_DIMS];
     size_t array_dim_count = 0;
+    sireflect_token_t name_token;
 
-    if (parser->current.kind == sireflect_token_star) {
-        is_pointer = 1;
-        sireflect_parser_next(parser);
+    if (parser->current.kind == sireflect_token_lparen) {
+        is_function_pointer = 1;
+        sireflect_expect(parser, sireflect_token_lparen, "function pointer declarator");
+        sireflect_expect(parser, sireflect_token_star, "function pointer declarator");
+        name_token = sireflect_expect_field_name(parser);
+        sireflect_expect(parser, sireflect_token_rparen, "function pointer declarator");
+        sireflect_expect(parser, sireflect_token_lparen, "function pointer parameters");
+        sireflect_expect(parser, sireflect_token_rparen, "function pointer parameters");
+    } else {
+        if (parser->current.kind == sireflect_token_star) {
+            is_pointer = 1;
+            sireflect_parser_next(parser);
+        }
+
+        name_token = sireflect_expect_field_name(parser);
     }
-
-    sireflect_token_t name_token = sireflect_expect_field_name(parser);
     if (parser->failed) {
         return;
     }
+
     array_dim_count =
         sireflect_parse_array_dimensions(parser, array_counts, SIREFLECT_MAX_ARRAY_DIMS);
     if (parser->failed) {
@@ -743,7 +777,9 @@ static inline void sireflect_parse_declarator(
         return;
     }
 
-    if (is_pointer) {
+    if (is_function_pointer) {
+        field_type = sireflect_registry_get_or_add_function_pointer_type(reg, field_type);
+    } else if (is_pointer) {
         field_type = sireflect_registry_get_or_add_pointer_type(reg, field_type);
     }
 

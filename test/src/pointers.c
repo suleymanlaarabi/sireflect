@@ -11,3 +11,7 @@ void pointers_pointer_compat_field(void) {
 void pointers_raw_pointer_field(void) {
     sireflect_test_impl_raw_pointer_field();
 }
+
+void pointers_function_pointer_field(void) {
+    sireflect_test_impl_function_pointer_field();
+}

@@ -68,6 +68,7 @@ volatile TYPE field;
 const volatile TYPE field;
 TYPE a, b;
 TYPE *field;
+TYPE (*field)();
 TYPE *a, *b;
 TYPE a, *b;
 TYPE field[N];
@@ -78,6 +79,9 @@ TYPE *field[N];
 
 Pointer fields use typed pointer metadata. Use the explicit `ptr` alias when
 you need a raw, untyped pointer field.
+
+Function-pointer fields use `sireflect_kind_function_pointer`; their `element_type`
+stores the registered return type. Empty parameter lists are currently supported.
 
 Unsupported syntax fails during strict registration with a debug assertion. Use
 `sireflect_try_register_struct` when invalid reflected source should return
