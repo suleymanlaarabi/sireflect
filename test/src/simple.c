@@ -991,6 +991,49 @@ void sireflect_test_impl_try_register_valid_struct(void) {
     sireflect_registry_fini(reg);
 }
 
+void sireflect_test_impl_try_register_dynamic_struct_layout(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_handle_t type = sireflect_try_register_dynamic_struct(
+        reg,
+        "DynamicMixed",
+        "{ u8 a; f64 b; u32 c; }"
+    );
+
+    test_assert(type != SIREFLECT_INVALID_HANDLE);
+    const sireflect_type_info_t *info = sireflect_type_info(reg, type);
+    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    test_uint(info->size, 24);
+    test_uint(info->align, 8);
+    test_uint(fields->field_count, 3);
+    test_uint(fields->fields[0].offset, 0);
+    test_uint(fields->fields[1].offset, 8);
+    test_uint(fields->fields[2].offset, 16);
+
+    sireflect_handle_t empty =
+        sireflect_try_register_dynamic_struct(reg, "DynamicTag", "{}");
+    const sireflect_type_info_t *empty_info = sireflect_type_info(reg, empty);
+    test_uint(empty_info->size, 0);
+    test_uint(empty_info->align, 1);
+
+    sireflect_registry_fini(reg);
+}
+
+void sireflect_test_impl_try_register_dynamic_struct_errors(void) {
+    sireflect_registry_t *reg = sireflect_registry_init();
+
+    test_uint(
+        sireflect_try_register_dynamic_struct(reg, "BadDynamic", "{ Missing value; }"),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_not_null((void *)sireflect_error());
+    test_uint(
+        sireflect_try_register_dynamic_struct(reg, "int", "{ f32 value; }"),
+        SIREFLECT_INVALID_HANDLE
+    );
+
+    sireflect_registry_fini(reg);
+}
+
 void sireflect_test_impl_try_register_invalid_descriptor(void) {
     sireflect_registry_t *reg = sireflect_registry_init();
 

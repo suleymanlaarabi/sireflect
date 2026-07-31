@@ -26,6 +26,8 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
 
     sireflect_field_info_t *parsed_fields = NULL;
     size_t field_count = 0;
+    size_t parsed_size = 0;
+    size_t parsed_align = 0;
 
     if (!sireflect_parse_struct_fields(
         reg,
@@ -35,6 +37,9 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
         &field_count,
         desc->size,
         desc->align,
+        &parsed_size,
+        &parsed_align,
+        true,
         false
     )) {
         return SIREFLECT_INVALID_HANDLE;
@@ -86,6 +91,8 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 
         sireflect_field_info_t *parsed_fields = NULL;
         size_t field_count = 0;
+        size_t parsed_size = 0;
+        size_t parsed_align = 0;
 
         if (sireflect_parse_struct_fields(
                 reg,
@@ -95,6 +102,9 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
                 &field_count,
                 desc->size,
                 desc->align,
+                &parsed_size,
+                &parsed_align,
+                true,
                 true
             )) {
             handle = sireflect_registry_add_type(
@@ -111,4 +121,57 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 
     sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "failed to register struct");
     return handle;
+}
+
+sireflect_handle_t sireflect_try_register_dynamic_struct(
+    sireflect_registry_t *reg,
+    const char *name,
+    const char *fields
+) {
+    sireflect_error_clear();
+
+    if (reg == NULL || name == NULL || fields == NULL) {
+        sireflect_error_set("invalid dynamic struct descriptor");
+        return SIREFLECT_INVALID_HANDLE;
+    }
+
+    sireflect_handle_t existing = sireflect_type_by_name(reg, name);
+    if (existing != SIREFLECT_INVALID_HANDLE) {
+        if (!sireflect_type_is_struct(sireflect_type_info(reg, existing))) {
+            sireflect_error_set("existing type is not a struct");
+            return SIREFLECT_INVALID_HANDLE;
+        }
+        return existing;
+    }
+
+    sireflect_field_info_t *parsed_fields = NULL;
+    size_t field_count = 0;
+    size_t size = 0;
+    size_t align = 0;
+
+    if (!sireflect_parse_struct_fields(
+            reg,
+            name,
+            fields,
+            &parsed_fields,
+            &field_count,
+            0,
+            1,
+            &size,
+            &align,
+            false,
+            false
+        )) {
+        return SIREFLECT_INVALID_HANDLE;
+    }
+
+    return sireflect_registry_add_type(
+        reg,
+        name,
+        sireflect_kind_struct,
+        size,
+        align,
+        parsed_fields,
+        field_count
+    );
 }

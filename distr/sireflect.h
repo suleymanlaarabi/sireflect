@@ -247,6 +247,16 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 sireflect_handle_t
 sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc);
 
+/*
+ * Tries to register a dynamic struct and derives its C layout from the
+ * registered field types. Returns SIREFLECT_INVALID_HANDLE on invalid input.
+ */
+sireflect_handle_t sireflect_try_register_dynamic_struct(
+    sireflect_registry_t *reg,
+    const char *name,
+    const char *fields
+);
+
 /* Finds a type handle by name, or SIREFLECT_INVALID_HANDLE if missing. */
 sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name);
 

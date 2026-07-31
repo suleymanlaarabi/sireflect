@@ -39,3 +39,11 @@ void try_register_error_cleared_by_public_call(void) {
 void try_register_error_cleared_by_registry_fini(void) {
     sireflect_test_impl_try_register_error_cleared_by_registry_fini();
 }
+
+void try_register_dynamic_struct_layout(void) {
+    sireflect_test_impl_try_register_dynamic_struct_layout();
+}
+
+void try_register_dynamic_struct_errors(void) {
+    sireflect_test_impl_try_register_dynamic_struct_errors();
+}

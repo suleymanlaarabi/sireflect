@@ -159,6 +159,9 @@ bool sireflect_parse_struct_fields(
     size_t *out_field_count,
     size_t struct_size,
     size_t struct_align,
+    size_t *out_struct_size,
+    size_t *out_struct_align,
+    bool validate_layout,
     bool fail_fast
 );
 
@@ -1066,16 +1069,18 @@ bool sireflect_parse_struct_fields(
     size_t *out_field_count,
     size_t struct_size,
     size_t struct_align,
+    size_t *out_struct_size,
+    size_t *out_struct_align,
+    bool validate_layout,
     bool fail_fast
 ) {
-    (void)struct_size;
-    (void)struct_align;
-
     sireflect_assert(reg != NULL, "registry must not be NULL");
     sireflect_assert(struct_name != NULL, "struct name must not be NULL");
     sireflect_assert(fields_src != NULL, "field source must not be NULL");
     sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
     sireflect_assert(out_field_count != NULL, "output field count pointer must not be NULL");
+    sireflect_assert(out_struct_size != NULL, "output struct size must not be NULL");
+    sireflect_assert(out_struct_align != NULL, "output struct alignment must not be NULL");
 
     size_t field_count = 0;
     if (!sireflect_count_fields(struct_name, fields_src, fail_fast, &field_count)) {
@@ -1132,7 +1137,7 @@ bool sireflect_parse_struct_fields(
     }
 
 #ifndef NDEBUG
-    {
+    if (validate_layout) {
         const size_t computed_size = sireflect_align_up(offset, struct_align);
         if (computed_size != struct_size) {
             if (fail_fast) {
@@ -1156,10 +1161,16 @@ bool sireflect_parse_struct_fields(
             return false;
         }
     }
+#else
+    (void)struct_size;
+    (void)struct_align;
+    (void)validate_layout;
 #endif
 
     *out_fields = fields;
     *out_field_count = field_count;
+    *out_struct_align = max_align;
+    *out_struct_size = sireflect_align_up(offset, max_align);
     return true;
 }
 
@@ -1519,6 +1530,8 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
 
     sireflect_field_info_t *parsed_fields = NULL;
     size_t field_count = 0;
+    size_t parsed_size = 0;
+    size_t parsed_align = 0;
 
     if (!sireflect_parse_struct_fields(
         reg,
@@ -1528,6 +1541,9 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
         &field_count,
         desc->size,
         desc->align,
+        &parsed_size,
+        &parsed_align,
+        true,
         false
     )) {
         return SIREFLECT_INVALID_HANDLE;
@@ -1579,6 +1595,8 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 
         sireflect_field_info_t *parsed_fields = NULL;
         size_t field_count = 0;
+        size_t parsed_size = 0;
+        size_t parsed_align = 0;
 
         if (sireflect_parse_struct_fields(
                 reg,
@@ -1588,6 +1606,9 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
                 &field_count,
                 desc->size,
                 desc->align,
+                &parsed_size,
+                &parsed_align,
+                true,
                 true
             )) {
             handle = sireflect_registry_add_type(
@@ -1604,6 +1625,59 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 
     sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "failed to register struct");
     return handle;
+}
+
+sireflect_handle_t sireflect_try_register_dynamic_struct(
+    sireflect_registry_t *reg,
+    const char *name,
+    const char *fields
+) {
+    sireflect_error_clear();
+
+    if (reg == NULL || name == NULL || fields == NULL) {
+        sireflect_error_set("invalid dynamic struct descriptor");
+        return SIREFLECT_INVALID_HANDLE;
+    }
+
+    sireflect_handle_t existing = sireflect_type_by_name(reg, name);
+    if (existing != SIREFLECT_INVALID_HANDLE) {
+        if (!sireflect_type_is_struct(sireflect_type_info(reg, existing))) {
+            sireflect_error_set("existing type is not a struct");
+            return SIREFLECT_INVALID_HANDLE;
+        }
+        return existing;
+    }
+
+    sireflect_field_info_t *parsed_fields = NULL;
+    size_t field_count = 0;
+    size_t size = 0;
+    size_t align = 0;
+
+    if (!sireflect_parse_struct_fields(
+            reg,
+            name,
+            fields,
+            &parsed_fields,
+            &field_count,
+            0,
+            1,
+            &size,
+            &align,
+            false,
+            false
+        )) {
+        return SIREFLECT_INVALID_HANDLE;
+    }
+
+    return sireflect_registry_add_type(
+        reg,
+        name,
+        sireflect_kind_struct,
+        size,
+        align,
+        parsed_fields,
+        field_count
+    );
 }
 
 const char *sireflect_kind_name(sireflect_kind_t kind) {

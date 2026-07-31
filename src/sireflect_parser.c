@@ -866,16 +866,18 @@ bool sireflect_parse_struct_fields(
     size_t *out_field_count,
     size_t struct_size,
     size_t struct_align,
+    size_t *out_struct_size,
+    size_t *out_struct_align,
+    bool validate_layout,
     bool fail_fast
 ) {
-    (void)struct_size;
-    (void)struct_align;
-
     sireflect_assert(reg != NULL, "registry must not be NULL");
     sireflect_assert(struct_name != NULL, "struct name must not be NULL");
     sireflect_assert(fields_src != NULL, "field source must not be NULL");
     sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
     sireflect_assert(out_field_count != NULL, "output field count pointer must not be NULL");
+    sireflect_assert(out_struct_size != NULL, "output struct size must not be NULL");
+    sireflect_assert(out_struct_align != NULL, "output struct alignment must not be NULL");
 
     size_t field_count = 0;
     if (!sireflect_count_fields(struct_name, fields_src, fail_fast, &field_count)) {
@@ -932,7 +934,7 @@ bool sireflect_parse_struct_fields(
     }
 
 #ifndef NDEBUG
-    {
+    if (validate_layout) {
         const size_t computed_size = sireflect_align_up(offset, struct_align);
         if (computed_size != struct_size) {
             if (fail_fast) {
@@ -956,9 +958,15 @@ bool sireflect_parse_struct_fields(
             return false;
         }
     }
+#else
+    (void)struct_size;
+    (void)struct_align;
+    (void)validate_layout;
 #endif
 
     *out_fields = fields;
     *out_field_count = field_count;
+    *out_struct_align = max_align;
+    *out_struct_size = sireflect_align_up(offset, max_align);
     return true;
 }

@@ -89,7 +89,9 @@
           "registry_usable_after_failure",
           "error_message_persists",
           "error_cleared_by_public_call",
-          "error_cleared_by_registry_fini"
+          "error_cleared_by_registry_fini",
+          "dynamic_struct_layout",
+          "dynamic_struct_errors"
         ]
       },
       {
