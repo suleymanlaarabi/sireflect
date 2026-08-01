@@ -22,10 +22,12 @@ void sireflect_assert_fail(
 #ifndef SIREFLECT_ERROR_H
 #define SIREFLECT_ERROR_H
 
+
 void sireflect_error_clear(void);
 void sireflect_error_set(const char *message);
 
 #endif
+
 
 #include <stdlib.h>
 #include <string.h>
@@ -61,6 +63,8 @@ void sireflect_error_set(const char *message) {
 const char *sireflect_error(void) {
     return sireflect_current_error;
 }
+
+
 
 const sireflect_field_info_t *
 sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
@@ -151,6 +155,7 @@ int sireflect_field_copy(
 #ifndef SIREFLECT_PARSER_H
 #define SIREFLECT_PARSER_H
 
+
 bool sireflect_parse_struct_fields(
     sireflect_registry_t *reg,
     const char *struct_name,
@@ -169,6 +174,7 @@ bool sireflect_parse_struct_fields(
 
 #ifndef SIREFLECT_REGISTRY_H
 #define SIREFLECT_REGISTRY_H
+
 
 struct sireflect_registry_t {
     sireflect_type_info_t *types;
@@ -195,6 +201,7 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
 sireflect_handle_t
 sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_handle_t pointee_type);
 
+
 sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
     sireflect_registry_t *reg,
     sireflect_handle_t return_type
@@ -207,6 +214,7 @@ const sireflect_type_info_t *
 sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_handle_t handle);
 
 #endif
+
 
 #include <ctype.h>
 #include <stdint.h>
@@ -1174,6 +1182,8 @@ bool sireflect_parse_struct_fields(
     return true;
 }
 
+
+
 static char *sireflect_dup_cstr(const char *str) {
     sireflect_assert(str != NULL, "string must not be NULL");
 
@@ -1507,6 +1517,7 @@ sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle)
     return (sireflect_type_info_t *)sireflect_registry_const_type_at(reg, handle);
 }
 
+
 sireflect_handle_t
 sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
     sireflect_error_clear();
@@ -1679,6 +1690,7 @@ sireflect_handle_t sireflect_try_register_dynamic_struct(
         field_count
     );
 }
+
 
 const char *sireflect_kind_name(sireflect_kind_t kind) {
     sireflect_error_clear();

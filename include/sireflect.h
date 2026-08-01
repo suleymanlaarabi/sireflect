@@ -42,7 +42,7 @@ typedef uint64_t sireflect_handle_t;
 
 /* Reports a failed Sireflect debug assertion. */
 #ifndef NDEBUG
-void sireflect_assert_fail(
+SIREFLECT_API void sireflect_assert_fail(
     const char *condition,
     const char *message,
     const char *file,
@@ -92,10 +92,10 @@ typedef enum {
 
 /* Returns a stable string for a kind, or "unknown" for an invalid kind value.
  */
-const char *sireflect_kind_name(sireflect_kind_t kind);
+SIREFLECT_API const char *sireflect_kind_name(sireflect_kind_t kind);
 
 /* Returns true for integer and floating-point kinds. */
-bool sireflect_is_numeric(sireflect_kind_t kind);
+SIREFLECT_API bool sireflect_is_numeric(sireflect_kind_t kind);
 
 /* Qualifier flags stored on reflected fields. */
 typedef enum {
@@ -181,91 +181,91 @@ typedef struct {
 #define sireflect(reg, name) sireflect_register_struct(reg, &sireflect_desc(name))
 
 /* Creates a reflection registry. */
-sireflect_registry_t *sireflect_registry_init(void);
+SIREFLECT_API sireflect_registry_t *sireflect_registry_init(void);
 
 /* Destroys a registry and all metadata it owns. */
-void sireflect_registry_fini(sireflect_registry_t *reg);
+SIREFLECT_API void sireflect_registry_fini(sireflect_registry_t *reg);
 
 /*
  * Returns the current recoverable error message, or NULL if there is no error.
  * The returned pointer is owned by Sireflect and remains valid until the next
  * public sireflect_* call except sireflect_error(), or until sireflect_registry_fini().
  */
-const char *sireflect_error(void);
+SIREFLECT_API const char *sireflect_error(void);
 
 /*
  * Registers a struct type from its textual field list.
  * Returns the existing handle if the same type was already registered.
  */
-sireflect_handle_t
+SIREFLECT_API sireflect_handle_t
 sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc);
 
 /*
  * Tries to register a struct type from its textual field list.
  * Returns SIREFLECT_INVALID_HANDLE when the descriptor or reflected field syntax is invalid.
  */
-sireflect_handle_t
+SIREFLECT_API sireflect_handle_t
 sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc);
 
 /*
  * Tries to register a dynamic struct and derives its C layout from the
  * registered field types. Returns SIREFLECT_INVALID_HANDLE on invalid input.
  */
-sireflect_handle_t sireflect_try_register_dynamic_struct(
+SIREFLECT_API sireflect_handle_t sireflect_try_register_dynamic_struct(
     sireflect_registry_t *reg,
     const char *name,
     const char *fields
 );
 
 /* Finds a type handle by name, or SIREFLECT_INVALID_HANDLE if missing. */
-sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name);
+SIREFLECT_API sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name);
 
 /* Returns metadata for a type handle. */
-const sireflect_type_info_t *
+SIREFLECT_API const sireflect_type_info_t *
 sireflect_type_info(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns the fields of a type. */
-const sireflect_fields_t *
+SIREFLECT_API const sireflect_fields_t *
 sireflect_type_fields(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns the size of a type in bytes. */
-size_t sireflect_type_size(const sireflect_registry_t *reg, sireflect_handle_t ref);
+SIREFLECT_API size_t sireflect_type_size(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns the name of a type. */
-const char *sireflect_type_name(const sireflect_registry_t *reg, sireflect_handle_t ref);
+SIREFLECT_API const char *sireflect_type_name(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns true when type metadata describes a struct type. */
-bool sireflect_type_is_struct(const sireflect_type_info_t *info);
+SIREFLECT_API bool sireflect_type_is_struct(const sireflect_type_info_t *info);
 
 /* Returns true when type metadata describes an array type. */
-bool sireflect_type_is_array(const sireflect_type_info_t *info);
+SIREFLECT_API bool sireflect_type_is_array(const sireflect_type_info_t *info);
 
 /* Returns true when type metadata describes a typed pointer type. */
-bool sireflect_type_is_pointer(const sireflect_type_info_t *info);
+SIREFLECT_API bool sireflect_type_is_pointer(const sireflect_type_info_t *info);
 
 /* Returns the element type handle of an array type. */
-sireflect_handle_t sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref);
+SIREFLECT_API sireflect_handle_t sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns the element count of an array type. */
-size_t sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref);
+SIREFLECT_API size_t sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Returns the pointee type handle of a typed pointer type. */
-sireflect_handle_t sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref);
+SIREFLECT_API sireflect_handle_t sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref);
 
 /* Finds metadata for a field by name. */
-const sireflect_field_info_t *
+SIREFLECT_API const sireflect_field_info_t *
 sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field);
 
 /* Returns the type handle of a field. */
-sireflect_handle_t
+SIREFLECT_API sireflect_handle_t
 sireflect_field_type(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field);
 
 /* Returns the size of a field in bytes. */
-size_t
+SIREFLECT_API size_t
 sireflect_field_size(const sireflect_registry_t *reg, sireflect_handle_t ref, const char *field);
 
 /* Returns a const pointer to a field inside an object. */
-const void *sireflect_field_ptr(
+SIREFLECT_API const void *sireflect_field_ptr(
     const sireflect_registry_t *reg,
     sireflect_handle_t type,
     const void *obj,
@@ -273,7 +273,7 @@ const void *sireflect_field_ptr(
 );
 
 /* Returns a mutable pointer to a field inside an object. */
-void *sireflect_field_mut_ptr(
+SIREFLECT_API void *sireflect_field_mut_ptr(
     const sireflect_registry_t *reg,
     sireflect_handle_t type,
     void *obj,
@@ -281,7 +281,7 @@ void *sireflect_field_mut_ptr(
 );
 
 /* Copies value bytes into a field. Returns 0 on success. */
-int sireflect_field_copy(
+SIREFLECT_API int sireflect_field_copy(
     const sireflect_registry_t *reg,
     sireflect_handle_t type,
     void *obj,
