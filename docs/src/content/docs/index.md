@@ -14,13 +14,13 @@ The public API is exposed by:
 
 Sireflect is intentionally limited. It reflects structs declared through
 `SIREFLECT_STRUCT`, parses their field list at registration time, and stores
-metadata in a registry owned by the application.
+metadata in an internal process-wide context.
 
 ## What it provides
 
 | Feature | Description |
 | --- | --- |
-| Type registry | Stores primitive and struct metadata behind stable handles. |
+| Type metadata | Stores primitive and struct metadata behind stable handles. |
 | Struct registration | Registers a struct declared with `SIREFLECT_STRUCT`. |
 | Field metadata | Provides field name, type handle, byte offset, size, and alignment. |
 | Field access | Returns pointers to fields inside a live object. |
@@ -38,10 +38,10 @@ SIREFLECT_STRUCT(Position, {
 });
 
 int main(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
-    sireflect_handle_t position_type = sireflect(reg, Position);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, position_type);
+    sireflect_handle_t position_type = sireflect(Position);
+    const sireflect_fields_t *fields = sireflect_type_fields(position_type);
 
     for (size_t i = 0; i < fields->field_count; i++) {
         const sireflect_field_info_t *field = &fields->fields[i];
@@ -49,10 +49,10 @@ int main(void) {
     }
 
     Position pos = { .x = 10.0f, .y = 20.0f };
-    f32 *x = sireflect_field_mut_ptr(reg, position_type, &pos, "x");
+    f32 *x = sireflect_field_mut_ptr(position_type, &pos, "x");
     *x = 42.0f;
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
     return 0;
 }
 ```

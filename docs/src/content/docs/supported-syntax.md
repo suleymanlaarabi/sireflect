@@ -86,7 +86,7 @@ pointer. The pointed type can be inspected from that element with
 
 ## Built-in type names
 
-The registry creates handles for these built-in names:
+Sireflect creates handles for these built-in names during `sireflect_init()`:
 
 | Name | C type |
 | --- | --- |
@@ -138,9 +138,9 @@ SIREFLECT_STRUCT(Transform, {
     Position position;
 });
 
-sireflect_registry_t *reg = sireflect_registry_init();
-sireflect(reg, Position);
-sireflect(reg, Transform);
+sireflect_init();
+sireflect(Position);
+sireflect(Transform);
 ```
 
 Unknown type names assert during registration.

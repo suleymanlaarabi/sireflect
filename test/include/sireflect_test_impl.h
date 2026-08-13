@@ -70,4 +70,8 @@ void sireflect_test_impl_missing_declarator_diagnostic(void);
 void sireflect_test_impl_post_pointer_qualifier_diagnostic(void);
 void sireflect_test_impl_unsupported_type_specifier_diagnostic(void);
 
+void sireflect_test_impl_nested_init_fini(void);
+void sireflect_test_impl_fini_without_init_asserts(void);
+void sireflect_test_impl_try_register_before_init(void);
+
 #endif

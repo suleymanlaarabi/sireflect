@@ -689,7 +689,6 @@ static inline size_t sireflect_align_up(size_t value, size_t align) {
 }
 
 static inline sireflect_handle_t sireflect_resolve_field_type(
-    sireflect_registry_t *reg,
     sireflect_parser_t *parser,
     sireflect_type_spec_t type
 ) {
@@ -701,7 +700,7 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
         type_name = owned_name;
     }
 
-    sireflect_handle_t field_type = sireflect_type_by_name(reg, type_name);
+    sireflect_handle_t field_type = sireflect_type_by_name(type_name);
     if (field_type == SIREFLECT_INVALID_HANDLE) {
         char context[160];
 
@@ -729,7 +728,6 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
 }
 
 static inline void sireflect_parse_declarator(
-    sireflect_registry_t *reg,
     sireflect_parser_t *parser,
     sireflect_field_info_t *field,
     sireflect_type_spec_t type,
@@ -772,22 +770,22 @@ static inline void sireflect_parse_declarator(
         return;
     }
 
-    sireflect_handle_t field_type = sireflect_resolve_field_type(reg, parser, type);
+    sireflect_handle_t field_type = sireflect_resolve_field_type(parser, type);
     if (parser->failed) {
         return;
     }
 
     if (is_function_pointer) {
-        field_type = sireflect_registry_get_or_add_function_pointer_type(reg, field_type);
+        field_type = sireflect_registry_get_or_add_function_pointer_type(field_type);
     } else if (is_pointer) {
-        field_type = sireflect_registry_get_or_add_pointer_type(reg, field_type);
+        field_type = sireflect_registry_get_or_add_pointer_type(field_type);
     }
 
     for (size_t i = array_dim_count; i > 0; i--) {
-        field_type = sireflect_registry_get_or_add_array_type(reg, field_type, array_counts[i - 1]);
+        field_type = sireflect_registry_get_or_add_array_type(field_type, array_counts[i - 1]);
     }
 
-    const sireflect_type_info_t *type_info = sireflect_type_info(reg, field_type);
+    const sireflect_type_info_t *type_info = sireflect_type_info(field_type);
     sireflect_assert(type_info != NULL, "field type metadata must exist");
 
     field->name = sireflect_dup_range(name_token.start, name_token.len);
@@ -804,7 +802,6 @@ static inline void sireflect_parse_declarator(
 }
 
 static inline size_t sireflect_parse_declaration(
-    sireflect_registry_t *reg,
     sireflect_parser_t *parser,
     sireflect_field_info_t *fields,
     size_t *offset,
@@ -819,7 +816,6 @@ static inline size_t sireflect_parse_declaration(
 
     for (;;) {
         sireflect_parse_declarator(
-            reg,
             parser,
             &fields[count],
             type,
@@ -859,7 +855,6 @@ static inline void sireflect_free_parsed_fields(sireflect_field_info_t *fields, 
 }
 
 bool sireflect_parse_struct_fields(
-    sireflect_registry_t *reg,
     const char *struct_name,
     const char *fields_src,
     sireflect_field_info_t **out_fields,
@@ -871,7 +866,6 @@ bool sireflect_parse_struct_fields(
     bool validate_layout,
     bool fail_fast
 ) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
     sireflect_assert(struct_name != NULL, "struct name must not be NULL");
     sireflect_assert(fields_src != NULL, "field source must not be NULL");
     sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
@@ -908,7 +902,7 @@ bool sireflect_parse_struct_fields(
 
     for (size_t i = 0; i < field_count;) {
         const size_t parsed_count =
-            sireflect_parse_declaration(reg, &parser, &fields[i], &offset, &max_align);
+            sireflect_parse_declaration(&parser, &fields[i], &offset, &max_align);
         if (parser.failed) {
             sireflect_free_parsed_fields(fields, field_count);
             *out_fields = NULL;

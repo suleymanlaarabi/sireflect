@@ -8,7 +8,7 @@ type handles, field metadata, field lookup, and raw field access without a
 compiler plugin or an external code generator.
 
 - Compact C API with zero runtime dependencies.
-- Struct reflection through `SIREFLECT_STRUCT` and a registry owned by the app.
+- Struct reflection through `SIREFLECT_STRUCT` and a process-wide reflection context.
 - Built-in metadata for primitive aliases such as `u8`, `i32`, `f32`, `bool`,
   `ptr`, native C numeric types, and common multi-token type names such as
   `unsigned int` and `long long`.
@@ -30,14 +30,14 @@ SIREFLECT_STRUCT(Position, {
 });
 
 int main(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
-    sireflect_handle_t position_type = sireflect(reg, Position);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, position_type);
+    sireflect_handle_t position_type = sireflect(Position);
+    const sireflect_fields_t *fields = sireflect_type_fields(position_type);
 
     for (size_t i = 0; i < fields->field_count; i++) {
         const sireflect_field_info_t *field = &fields->fields[i];
-        const sireflect_type_info_t *type = sireflect_type_info(reg, field->type);
+        const sireflect_type_info_t *type = sireflect_type_info(field->type);
 
         printf(
             "%s: type=%s offset=%zu size=%zu\n",
@@ -49,10 +49,10 @@ int main(void) {
     }
 
     Position pos = { .x = 10.0f, .y = 20.0f };
-    f32 *x = sireflect_field_mut_ptr(reg, position_type, &pos, "x");
+    f32 *x = sireflect_field_mut_ptr(position_type, &pos, "x");
     *x = 42.0f;
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
     return 0;
 }
 ```
@@ -88,8 +88,8 @@ Unsupported syntax fails during strict registration with a debug assertion. Use
 `SIREFLECT_INVALID_HANDLE` instead of aborting in debug builds.
 After a recoverable failure, call `sireflect_error()` to inspect the current
 library-owned error string. The pointer remains valid until the next public
-`sireflect_*` call except `sireflect_error()`, or until
-`sireflect_registry_fini()`.
+`sireflect_*` call except `sireflect_error()`, or until the final
+`sireflect_fini()`.
 
 ## Documentation
 

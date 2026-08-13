@@ -6,10 +6,10 @@ description: Register a reflected struct and inspect its metadata.
 This page shows the normal Sireflect flow:
 
 1. Declare a reflected struct with `SIREFLECT_STRUCT`.
-2. Create a registry with `sireflect_registry_init`.
-3. Register the struct with `sireflect(reg, TypeName)`.
-4. Read type and field metadata through the registry.
-5. Destroy the registry with `sireflect_registry_fini`.
+2. Initialize Sireflect with `sireflect_init`.
+3. Register the struct with `sireflect(TypeName)`.
+4. Read type and field metadata through the global context.
+5. Release Sireflect with `sireflect_fini`.
 
 ## Declare a reflected struct
 
@@ -34,28 +34,33 @@ typedef struct {
 It also stores the field source as a string so Sireflect can parse it when the
 type is registered.
 
-## Create a registry
+## Initialize Sireflect
 
 ```c
-sireflect_registry_t *reg = sireflect_registry_init();
+sireflect_init();
 ```
 
-The registry owns all reflected metadata. During initialization it registers the
-built-in primitive names understood by the parser, such as `u8`, `f32`, `int`,
-`float`, `double`, `char`, `bool`, and `ptr`.
+Sireflect owns all reflected metadata in an internal process-wide context.
+The first initialization registers the built-in primitive names understood by
+the parser, such as `u8`, `f32`, `int`, `float`, `double`, `char`, `bool`, and
+`ptr`.
 
-Destroy the registry when reflection metadata is no longer needed:
+Initialization is reference-counted, so independent subsystems may call
+`sireflect_init()` and `sireflect_fini()`. Metadata is destroyed only after the
+matching final `sireflect_fini()`.
+
+Release Sireflect when reflection metadata is no longer needed:
 
 ```c
-sireflect_registry_fini(reg);
+sireflect_fini();
 ```
 
-All metadata pointers returned by the registry become invalid after this call.
+All metadata pointers become invalid after the final release.
 
 ## Register a type
 
 ```c
-sireflect_handle_t position = sireflect(reg, Position);
+sireflect_handle_t position = sireflect(Position);
 ```
 
 The `sireflect` macro calls `sireflect_register_struct` with the type name, the
@@ -69,12 +74,12 @@ should return `SIREFLECT_INVALID_HANDLE` instead of triggering the strict debug
 assertions used by `sireflect_register_struct`. After a failed try-register,
 `sireflect_error()` returns the current library-owned error string. The pointer
 is valid until the next public `sireflect_*` call except `sireflect_error()`, or
-until `sireflect_registry_fini()`.
+until the final `sireflect_fini()`.
 
 ## Inspect fields
 
 ```c
-const sireflect_fields_t *fields = sireflect_type_fields(reg, position);
+const sireflect_fields_t *fields = sireflect_type_fields(position);
 
 for (size_t i = 0; i < fields->field_count; i++) {
     const sireflect_field_info_t *field = &fields->fields[i];
@@ -101,10 +106,10 @@ Each field stores:
 ```c
 Position pos = { .x = 1.0f, .y = 2.0f };
 
-f32 *x = sireflect_field_mut_ptr(reg, position, &pos, "x");
+f32 *x = sireflect_field_mut_ptr(position, &pos, "x");
 *x = 5.0f;
 
-const f32 *y = sireflect_field_ptr(reg, position, &pos, "y");
+const f32 *y = sireflect_field_ptr(position, &pos, "y");
 printf("y=%f\n", (double)*y);
 ```
 
@@ -115,7 +120,7 @@ result to the expected C type after checking the field metadata when needed.
 
 ```c
 f32 value = 42.0f;
-int rc = sireflect_field_copy(reg, position, &pos, "x", &value);
+int rc = sireflect_field_copy(position, &pos, "x", &value);
 ```
 
 `sireflect_field_copy` copies exactly `field.size` bytes from `value` into the

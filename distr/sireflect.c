@@ -63,12 +63,12 @@ const char *sireflect_error(void) {
 }
 
 const sireflect_field_info_t *
-sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
+sireflect_field_info(sireflect_handle_t type, const char *field) {
     sireflect_error_clear();
 
     sireflect_assert(field != NULL, "field name must not be NULL");
 
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
     for (size_t i = 0; i < fields->field_count; i++) {
         if (strcmp(fields->fields[i].name, field) == 0) {
             return &fields->fields[i];
@@ -79,25 +79,24 @@ sireflect_field_info(const sireflect_registry_t *reg, sireflect_handle_t type, c
 }
 
 sireflect_handle_t
-sireflect_field_type(const sireflect_registry_t *reg, sireflect_handle_t type, const char *field) {
+sireflect_field_type(sireflect_handle_t type, const char *field) {
     sireflect_error_clear();
 
-    const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
+    const sireflect_field_info_t *info = sireflect_field_info(type, field);
     sireflect_assert(info != NULL, "field must exist");
     return info->type;
 }
 
 size_t
-sireflect_field_size(const sireflect_registry_t *reg, sireflect_handle_t ref, const char *field) {
+sireflect_field_size(sireflect_handle_t ref, const char *field) {
     sireflect_error_clear();
 
-    const sireflect_field_info_t *info = sireflect_field_info(reg, ref, field);
+    const sireflect_field_info_t *info = sireflect_field_info(ref, field);
     sireflect_assert(info != NULL, "field must exist");
     return info->size;
 }
 
 const void *sireflect_field_ptr(
-    const sireflect_registry_t *reg,
     sireflect_handle_t type,
     const void *obj,
     const char *field
@@ -106,14 +105,13 @@ const void *sireflect_field_ptr(
 
     sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
-    const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
+    const sireflect_field_info_t *info = sireflect_field_info(type, field);
     sireflect_assert(info != NULL, "field must exist");
 
     return (const unsigned char *)obj + info->offset;
 }
 
 void *sireflect_field_mut_ptr(
-    const sireflect_registry_t *reg,
     sireflect_handle_t type,
     void *obj,
     const char *field
@@ -122,14 +120,13 @@ void *sireflect_field_mut_ptr(
 
     sireflect_assert(obj != NULL, "object pointer must not be NULL");
 
-    const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
+    const sireflect_field_info_t *info = sireflect_field_info(type, field);
     sireflect_assert(info != NULL, "field must exist");
 
     return (unsigned char *)obj + info->offset;
 }
 
 int sireflect_field_copy(
-    const sireflect_registry_t *reg,
     sireflect_handle_t type,
     void *obj,
     const char *field,
@@ -139,12 +136,12 @@ int sireflect_field_copy(
 
     sireflect_assert(value != NULL, "source value pointer must not be NULL");
 
-    const sireflect_field_info_t *info = sireflect_field_info(reg, type, field);
+    const sireflect_field_info_t *info = sireflect_field_info(type, field);
     if (info == NULL) {
         return -1;
     }
 
-    memcpy(sireflect_field_mut_ptr(reg, type, obj, field), value, info->size);
+    memcpy(sireflect_field_mut_ptr(type, obj, field), value, info->size);
     return 0;
 }
 
@@ -152,7 +149,6 @@ int sireflect_field_copy(
 #define SIREFLECT_PARSER_H
 
 bool sireflect_parse_struct_fields(
-    sireflect_registry_t *reg,
     const char *struct_name,
     const char *fields_src,
     sireflect_field_info_t **out_fields,
@@ -170,14 +166,18 @@ bool sireflect_parse_struct_fields(
 #ifndef SIREFLECT_REGISTRY_H
 #define SIREFLECT_REGISTRY_H
 
+typedef struct sireflect_registry_t sireflect_registry_t;
+
 struct sireflect_registry_t {
     sireflect_type_info_t *types;
     size_t type_count;
     size_t type_cap;
 };
 
+sireflect_registry_t *sireflect_registry_current(void);
+bool sireflect_registry_is_initialized(void);
+
 sireflect_handle_t sireflect_registry_add_type(
-    sireflect_registry_t *reg,
     const char *name,
     sireflect_kind_t kind,
     size_t size,
@@ -187,24 +187,20 @@ sireflect_handle_t sireflect_registry_add_type(
 );
 
 sireflect_handle_t sireflect_registry_get_or_add_array_type(
-    sireflect_registry_t *reg,
     sireflect_handle_t element_type,
     size_t element_count
 );
 
 sireflect_handle_t
-sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_handle_t pointee_type);
+sireflect_registry_get_or_add_pointer_type(sireflect_handle_t pointee_type);
 
 sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
-    sireflect_registry_t *reg,
     sireflect_handle_t return_type
 );
 
-sireflect_type_info_t *
-sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle);
+sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle);
 
-const sireflect_type_info_t *
-sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_handle_t handle);
+const sireflect_type_info_t *sireflect_registry_const_type_at(sireflect_handle_t handle);
 
 #endif
 
@@ -892,7 +888,6 @@ static inline size_t sireflect_align_up(size_t value, size_t align) {
 }
 
 static inline sireflect_handle_t sireflect_resolve_field_type(
-    sireflect_registry_t *reg,
     sireflect_parser_t *parser,
     sireflect_type_spec_t type
 ) {
@@ -904,7 +899,7 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
         type_name = owned_name;
     }
 
-    sireflect_handle_t field_type = sireflect_type_by_name(reg, type_name);
+    sireflect_handle_t field_type = sireflect_type_by_name(type_name);
     if (field_type == SIREFLECT_INVALID_HANDLE) {
         char context[160];
 
@@ -932,7 +927,6 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
 }
 
 static inline void sireflect_parse_declarator(
-    sireflect_registry_t *reg,
     sireflect_parser_t *parser,
     sireflect_field_info_t *field,
     sireflect_type_spec_t type,
@@ -975,22 +969,22 @@ static inline void sireflect_parse_declarator(
         return;
     }
 
-    sireflect_handle_t field_type = sireflect_resolve_field_type(reg, parser, type);
+    sireflect_handle_t field_type = sireflect_resolve_field_type(parser, type);
     if (parser->failed) {
         return;
     }
 
     if (is_function_pointer) {
-        field_type = sireflect_registry_get_or_add_function_pointer_type(reg, field_type);
+        field_type = sireflect_registry_get_or_add_function_pointer_type(field_type);
     } else if (is_pointer) {
-        field_type = sireflect_registry_get_or_add_pointer_type(reg, field_type);
+        field_type = sireflect_registry_get_or_add_pointer_type(field_type);
     }
 
     for (size_t i = array_dim_count; i > 0; i--) {
-        field_type = sireflect_registry_get_or_add_array_type(reg, field_type, array_counts[i - 1]);
+        field_type = sireflect_registry_get_or_add_array_type(field_type, array_counts[i - 1]);
     }
 
-    const sireflect_type_info_t *type_info = sireflect_type_info(reg, field_type);
+    const sireflect_type_info_t *type_info = sireflect_type_info(field_type);
     sireflect_assert(type_info != NULL, "field type metadata must exist");
 
     field->name = sireflect_dup_range(name_token.start, name_token.len);
@@ -1007,7 +1001,6 @@ static inline void sireflect_parse_declarator(
 }
 
 static inline size_t sireflect_parse_declaration(
-    sireflect_registry_t *reg,
     sireflect_parser_t *parser,
     sireflect_field_info_t *fields,
     size_t *offset,
@@ -1022,7 +1015,6 @@ static inline size_t sireflect_parse_declaration(
 
     for (;;) {
         sireflect_parse_declarator(
-            reg,
             parser,
             &fields[count],
             type,
@@ -1062,7 +1054,6 @@ static inline void sireflect_free_parsed_fields(sireflect_field_info_t *fields, 
 }
 
 bool sireflect_parse_struct_fields(
-    sireflect_registry_t *reg,
     const char *struct_name,
     const char *fields_src,
     sireflect_field_info_t **out_fields,
@@ -1074,7 +1065,6 @@ bool sireflect_parse_struct_fields(
     bool validate_layout,
     bool fail_fast
 ) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
     sireflect_assert(struct_name != NULL, "struct name must not be NULL");
     sireflect_assert(fields_src != NULL, "field source must not be NULL");
     sireflect_assert(out_fields != NULL, "output field pointer must not be NULL");
@@ -1111,7 +1101,7 @@ bool sireflect_parse_struct_fields(
 
     for (size_t i = 0; i < field_count;) {
         const size_t parsed_count =
-            sireflect_parse_declaration(reg, &parser, &fields[i], &offset, &max_align);
+            sireflect_parse_declaration(&parser, &fields[i], &offset, &max_align);
         if (parser.failed) {
             sireflect_free_parsed_fields(fields, field_count);
             *out_fields = NULL;
@@ -1174,6 +1164,18 @@ bool sireflect_parse_struct_fields(
     return true;
 }
 
+static sireflect_registry_t sireflect_global_registry;
+static size_t sireflect_global_references;
+
+bool sireflect_registry_is_initialized(void) {
+    return sireflect_global_references != 0;
+}
+
+sireflect_registry_t *sireflect_registry_current(void) {
+    sireflect_assert(sireflect_registry_is_initialized(), "sireflect must be initialized");
+    return &sireflect_global_registry;
+}
+
 static char *sireflect_dup_cstr(const char *str) {
     sireflect_assert(str != NULL, "string must not be NULL");
 
@@ -1224,8 +1226,8 @@ static size_t sireflect_index_from_handle(sireflect_handle_t handle) {
     return (size_t)(handle - 1);
 }
 
-static void sireflect_registry_reserve(sireflect_registry_t *reg, size_t min_cap) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
+static void sireflect_registry_reserve(size_t min_cap) {
+    sireflect_registry_t *reg = sireflect_registry_current();
 
     if (reg->type_cap >= min_cap) {
         return;
@@ -1244,7 +1246,6 @@ static void sireflect_registry_reserve(sireflect_registry_t *reg, size_t min_cap
 }
 
 sireflect_handle_t sireflect_registry_add_type(
-    sireflect_registry_t *reg,
     const char *name,
     sireflect_kind_t kind,
     size_t size,
@@ -1252,12 +1253,13 @@ sireflect_handle_t sireflect_registry_add_type(
     sireflect_field_info_t *fields,
     size_t field_count
 ) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_registry_t *reg = sireflect_registry_current();
+
     sireflect_assert(name != NULL, "type name must not be NULL");
     sireflect_assert(size != 0 || kind == sireflect_kind_struct, "non-struct type size must not be zero");
     sireflect_assert(align != 0, "type alignment must not be zero");
 
-    sireflect_registry_reserve(reg, reg->type_count + 1);
+    sireflect_registry_reserve(reg->type_count + 1);
 
     const size_t index = reg->type_count++;
     reg->types[index] = (sireflect_type_info_t){
@@ -1278,8 +1280,9 @@ sireflect_handle_t sireflect_registry_add_type(
 }
 
 sireflect_handle_t
-sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_handle_t pointee_type) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
+sireflect_registry_get_or_add_pointer_type(sireflect_handle_t pointee_type) {
+    sireflect_registry_t *reg = sireflect_registry_current();
+
     sireflect_assert(pointee_type != SIREFLECT_INVALID_HANDLE, "pointer pointee type must be valid");
 
     for (size_t i = 0; i < reg->type_count; i++) {
@@ -1289,7 +1292,7 @@ sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_
         }
     }
 
-    const sireflect_type_info_t *pointee = sireflect_registry_const_type_at(reg, pointee_type);
+    const sireflect_type_info_t *pointee = sireflect_registry_const_type_at(pointee_type);
     sireflect_assert(pointee != NULL, "pointer pointee metadata must exist");
 
     const int name_len = snprintf(NULL, 0, "%s*", pointee->name);
@@ -1300,7 +1303,6 @@ sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_
     snprintf(name, (size_t)name_len + 1, "%s*", pointee->name);
 
     sireflect_handle_t pointer_type = sireflect_registry_add_type(
-        reg,
         name,
         sireflect_kind_pointer,
         sizeof(ptr),
@@ -1310,17 +1312,17 @@ sireflect_registry_get_or_add_pointer_type(sireflect_registry_t *reg, sireflect_
     );
     free(name);
 
-    sireflect_type_info_t *pointer_info = sireflect_registry_type_at(reg, pointer_type);
+    sireflect_type_info_t *pointer_info = sireflect_registry_type_at(pointer_type);
     pointer_info->element_type = pointee_type;
 
     return pointer_type;
 }
 
 sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
-    sireflect_registry_t *reg,
     sireflect_handle_t return_type
 ) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_registry_t *reg = sireflect_registry_current();
+
     sireflect_assert(return_type != SIREFLECT_INVALID_HANDLE, "function return type must be valid");
 
     for (size_t i = 0; i < reg->type_count; i++) {
@@ -1330,7 +1332,7 @@ sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
         }
     }
 
-    const sireflect_type_info_t *return_info = sireflect_registry_const_type_at(reg, return_type);
+    const sireflect_type_info_t *return_info = sireflect_registry_const_type_at(return_type);
     sireflect_assert(return_info != NULL, "function return type metadata must exist");
 
     const int name_len = snprintf(NULL, 0, "%s(*)()", return_info->name);
@@ -1341,7 +1343,6 @@ sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
     snprintf(name, (size_t)name_len + 1, "%s(*)()", return_info->name);
 
     sireflect_handle_t function_pointer_type = sireflect_registry_add_type(
-        reg,
         name,
         sireflect_kind_function_pointer,
         sizeof(ptr),
@@ -1352,18 +1353,18 @@ sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
     free(name);
 
     sireflect_type_info_t *function_pointer_info =
-        sireflect_registry_type_at(reg, function_pointer_type);
+        sireflect_registry_type_at(function_pointer_type);
     function_pointer_info->element_type = return_type;
 
     return function_pointer_type;
 }
 
 sireflect_handle_t sireflect_registry_get_or_add_array_type(
-    sireflect_registry_t *reg,
     sireflect_handle_t element_type,
     size_t element_count
 ) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_registry_t *reg = sireflect_registry_current();
+
     sireflect_assert(element_type != SIREFLECT_INVALID_HANDLE, "array element type must be valid");
     sireflect_assert(element_count != 0, "array element count must not be zero");
 
@@ -1375,14 +1376,13 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
         }
     }
 
-    const sireflect_type_info_t *element = sireflect_registry_const_type_at(reg, element_type);
+    const sireflect_type_info_t *element = sireflect_registry_const_type_at(element_type);
     sireflect_assert(element != NULL, "array element metadata must exist");
     sireflect_assert(element->size <= SIZE_MAX / element_count, "array type size overflows size_t");
 
     char *name = sireflect_format_array_type_name(element, element_count);
 
     sireflect_handle_t array_type = sireflect_registry_add_type(
-        reg,
         name,
         sireflect_kind_array,
         element->size * element_count,
@@ -1392,20 +1392,20 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
     );
     free(name);
 
-    sireflect_type_info_t *array_info = sireflect_registry_type_at(reg, array_type);
+    sireflect_type_info_t *array_info = sireflect_registry_type_at(array_type);
     array_info->element_type = element_type;
     array_info->element_count = element_count;
 
     return array_type;
 }
 
-#define add_type(name, kind)                                                                       \
-    sireflect_registry_add_type(reg, #name, kind, sizeof(name), _Alignof(name), NULL, 0)
+#define add_type(name, kind) \
+    sireflect_registry_add_type(#name, kind, sizeof(name), _Alignof(name), NULL, 0)
 
-#define add_named_type(c_type, reflected_name, kind)                                               \
-    sireflect_registry_add_type(reg, reflected_name, kind, sizeof(c_type), _Alignof(c_type), NULL, 0)
+#define add_named_type(c_type, reflected_name, kind) \
+    sireflect_registry_add_type(reflected_name, kind, sizeof(c_type), _Alignof(c_type), NULL, 0)
 
-static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
+static inline void sireflect_register_builtin_types(void) {
     add_type(u8, sireflect_kind_u8);
     add_type(u16, sireflect_kind_u16);
     add_type(u32, sireflect_kind_u32);
@@ -1444,22 +1444,21 @@ static inline void sireflect_register_builtin_types(sireflect_registry_t *reg) {
     add_named_type(unsigned long long, "unsigned long long", sireflect_kind_unsigned_long_long);
 }
 
-sireflect_registry_t *sireflect_registry_init(void) {
+void sireflect_init(void) {
     sireflect_error_clear();
 
-    sireflect_registry_t *reg = calloc(1, sizeof(*reg));
-    sireflect_assert(reg != NULL, "registry must not be NULL");
-
-    sireflect_register_builtin_types(reg);
-    return reg;
-}
-
-void sireflect_registry_fini(sireflect_registry_t *reg) {
-    sireflect_error_clear();
-
-    if (reg == NULL) {
+    if (sireflect_global_references == 0) {
+        sireflect_global_references = 1;
+        sireflect_register_builtin_types();
         return;
     }
+
+    sireflect_assert(sireflect_global_references != SIZE_MAX, "sireflect reference count overflow");
+    sireflect_global_references++;
+}
+
+static void sireflect_registry_clear(void) {
+    sireflect_registry_t *reg = &sireflect_global_registry;
 
     for (size_t i = 0; i < reg->type_count; i++) {
         sireflect_type_info_t *type = &reg->types[i];
@@ -1474,13 +1473,27 @@ void sireflect_registry_fini(sireflect_registry_t *reg) {
     }
 
     free(reg->types);
-    free(reg);
+    memset(reg, 0, sizeof(*reg));
 }
 
-sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const char *name) {
+void sireflect_fini(void) {
     sireflect_error_clear();
 
-    sireflect_assert(reg != NULL, "registry must not be NULL");
+    sireflect_assert(sireflect_global_references != 0, "sireflect is not initialized");
+    if (sireflect_global_references == 0) {
+        return;
+    }
+
+    sireflect_global_references--;
+    if (sireflect_global_references == 0) {
+        sireflect_registry_clear();
+    }
+}
+
+sireflect_handle_t sireflect_type_by_name(const char *name) {
+    sireflect_error_clear();
+
+    sireflect_registry_t *reg = sireflect_registry_current();
     sireflect_assert(name != NULL, "type name must not be NULL");
 
     for (size_t i = 0; i < reg->type_count; i++) {
@@ -1492,9 +1505,8 @@ sireflect_handle_t sireflect_type_by_name(const sireflect_registry_t *reg, const
     return SIREFLECT_INVALID_HANDLE;
 }
 
-const sireflect_type_info_t *
-sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_handle_t handle) {
-    sireflect_assert(reg != NULL, "registry must not be NULL");
+const sireflect_type_info_t *sireflect_registry_const_type_at(sireflect_handle_t handle) {
+    const sireflect_registry_t *reg = sireflect_registry_current();
 
     const size_t index = sireflect_index_from_handle(handle);
     sireflect_assert(index < reg->type_count, "type handle is out of range");
@@ -1502,24 +1514,26 @@ sireflect_registry_const_type_at(const sireflect_registry_t *reg, sireflect_hand
     return &reg->types[index];
 }
 
-sireflect_type_info_t *
-sireflect_registry_type_at(sireflect_registry_t *reg, sireflect_handle_t handle) {
-    return (sireflect_type_info_t *)sireflect_registry_const_type_at(reg, handle);
+sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle) {
+    return (sireflect_type_info_t *)sireflect_registry_const_type_at(handle);
 }
 
 sireflect_handle_t
-sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
+sireflect_try_register_struct(const sireflect_struct_desc_t *desc) {
     sireflect_error_clear();
 
-    if (reg == NULL || desc == NULL || desc->name == NULL || desc->fields == NULL ||
+    if (!sireflect_registry_is_initialized() || desc == NULL || desc->name == NULL || desc->fields == NULL ||
         desc->align == 0) {
-        sireflect_error_set("invalid struct descriptor");
+        sireflect_error_set(
+            sireflect_registry_is_initialized() ? "invalid struct descriptor"
+                                                 : "sireflect is not initialized"
+        );
         return SIREFLECT_INVALID_HANDLE;
     }
 
-    sireflect_handle_t existing = sireflect_type_by_name(reg, desc->name);
+    sireflect_handle_t existing = sireflect_type_by_name(desc->name);
     if (existing != SIREFLECT_INVALID_HANDLE) {
-        const sireflect_type_info_t *type = sireflect_type_info(reg, existing);
+        const sireflect_type_info_t *type = sireflect_type_info(existing);
         if (type->kind != sireflect_kind_struct || type->size != desc->size ||
             type->align != desc->align) {
             sireflect_error_set("existing type is incompatible with struct descriptor");
@@ -1534,7 +1548,6 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
     size_t parsed_align = 0;
 
     if (!sireflect_parse_struct_fields(
-        reg,
         desc->name,
         desc->fields,
         &parsed_fields,
@@ -1550,7 +1563,6 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
     }
 
     return sireflect_registry_add_type(
-        reg,
         desc->name,
         sireflect_kind_struct,
         desc->size,
@@ -1561,10 +1573,9 @@ sireflect_try_register_struct(sireflect_registry_t *reg, const sireflect_struct_
 }
 
 sireflect_handle_t
-sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc_t *desc) {
+sireflect_register_struct(const sireflect_struct_desc_t *desc) {
     sireflect_error_clear();
 
-    sireflect_assert(reg != NULL, "registry must not be NULL");
     sireflect_assert(desc != NULL, "struct descriptor must not be NULL");
     sireflect_assert(desc->name != NULL, "struct descriptor name must not be NULL");
     sireflect_assert(desc->fields != NULL, "struct descriptor fields must not be NULL");
@@ -1572,11 +1583,11 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 
     sireflect_handle_t handle = SIREFLECT_INVALID_HANDLE;
 
-    if (reg != NULL && desc != NULL && desc->name != NULL && desc->fields != NULL &&
+    if (sireflect_registry_is_initialized() && desc != NULL && desc->name != NULL && desc->fields != NULL &&
         desc->align != 0) {
-        sireflect_handle_t existing = sireflect_type_by_name(reg, desc->name);
+        sireflect_handle_t existing = sireflect_type_by_name(desc->name);
         if (existing != SIREFLECT_INVALID_HANDLE) {
-            const sireflect_type_info_t *type = sireflect_type_info(reg, existing);
+            const sireflect_type_info_t *type = sireflect_type_info(existing);
             if (type->kind != sireflect_kind_struct || type->size != desc->size ||
                 type->align != desc->align) {
                 sireflect_assert(type->kind == sireflect_kind_struct, "existing type must be a struct");
@@ -1599,7 +1610,6 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
         size_t parsed_align = 0;
 
         if (sireflect_parse_struct_fields(
-                reg,
                 desc->name,
                 desc->fields,
                 &parsed_fields,
@@ -1612,7 +1622,6 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
                 true
             )) {
             handle = sireflect_registry_add_type(
-                reg,
                 desc->name,
                 sireflect_kind_struct,
                 desc->size,
@@ -1628,20 +1637,22 @@ sireflect_register_struct(sireflect_registry_t *reg, const sireflect_struct_desc
 }
 
 sireflect_handle_t sireflect_try_register_dynamic_struct(
-    sireflect_registry_t *reg,
     const char *name,
     const char *fields
 ) {
     sireflect_error_clear();
 
-    if (reg == NULL || name == NULL || fields == NULL) {
-        sireflect_error_set("invalid dynamic struct descriptor");
+    if (!sireflect_registry_is_initialized() || name == NULL || fields == NULL) {
+        sireflect_error_set(
+            sireflect_registry_is_initialized() ? "invalid dynamic struct descriptor"
+                                                 : "sireflect is not initialized"
+        );
         return SIREFLECT_INVALID_HANDLE;
     }
 
-    sireflect_handle_t existing = sireflect_type_by_name(reg, name);
+    sireflect_handle_t existing = sireflect_type_by_name(name);
     if (existing != SIREFLECT_INVALID_HANDLE) {
-        if (!sireflect_type_is_struct(sireflect_type_info(reg, existing))) {
+        if (!sireflect_type_is_struct(sireflect_type_info(existing))) {
             sireflect_error_set("existing type is not a struct");
             return SIREFLECT_INVALID_HANDLE;
         }
@@ -1654,7 +1665,6 @@ sireflect_handle_t sireflect_try_register_dynamic_struct(
     size_t align = 0;
 
     if (!sireflect_parse_struct_fields(
-            reg,
             name,
             fields,
             &parsed_fields,
@@ -1670,7 +1680,6 @@ sireflect_handle_t sireflect_try_register_dynamic_struct(
     }
 
     return sireflect_registry_add_type(
-        reg,
         name,
         sireflect_kind_struct,
         size,
@@ -1782,30 +1791,30 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
 }
 
 const sireflect_type_info_t *
-sireflect_type_info(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_info(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    return sireflect_registry_const_type_at(reg, ref);
+    return sireflect_registry_const_type_at(ref);
 }
 
 const sireflect_fields_t *
-sireflect_type_fields(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_fields(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     return &type->fields;
 }
 
-size_t sireflect_type_size(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+size_t sireflect_type_size(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    return sireflect_type_info(reg, ref)->size;
+    return sireflect_type_info(ref)->size;
 }
 
-const char *sireflect_type_name(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+const char *sireflect_type_name(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    return sireflect_type_info(reg, ref)->name;
+    return sireflect_type_info(ref)->name;
 }
 
 bool sireflect_type_is_struct(const sireflect_type_info_t *info) {
@@ -1830,28 +1839,28 @@ bool sireflect_type_is_pointer(const sireflect_type_info_t *info) {
 }
 
 sireflect_handle_t
-sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_element(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
     return type->element_type;
 }
 
 size_t
-sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_element_count(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
     return type->element_count;
 }
 
 sireflect_handle_t
-sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_pointee(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     sireflect_assert(
         type->kind == sireflect_kind_pointer || type->kind == sireflect_kind_function_pointer,
         "type must be a typed pointer"

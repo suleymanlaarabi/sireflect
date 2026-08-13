@@ -4,9 +4,11 @@ description: Working with reflected type handles and type information.
 ---
 
 Types are represented by `sireflect_handle_t`. A handle is an integer id owned by
-a registry. Valid handles start at `1`; `SIREFLECT_INVALID_HANDLE` is `0`.
+Sireflect's process-wide context. Valid handles start at `1`;
+`SIREFLECT_INVALID_HANDLE` is `0`.
 
-Handles are only meaningful with the registry that created them.
+Handles are valid only while Sireflect remains initialized. The final
+`sireflect_fini()` invalidates all handles and metadata pointers.
 
 ## Field qualifiers
 
@@ -28,20 +30,20 @@ Qualifiers do not change the reflected type handle, size, alignment, or offset.
 ## Look up a type
 
 ```c
-sireflect_handle_t f32_type = sireflect_type_by_name(reg, "f32");
+sireflect_handle_t f32_type = sireflect_type_by_name("f32");
 
 if (f32_type == SIREFLECT_INVALID_HANDLE) {
     /* Type is not registered. */
 }
 ```
 
-Built-in types are registered by `sireflect_registry_init`. Struct types are
-registered by calling `sireflect(reg, TypeName)` or `sireflect_register_struct`.
+Built-in types are registered by `sireflect_init`. Struct types are
+registered by calling `sireflect(TypeName)` or `sireflect_register_struct`.
 
 ## Read type information
 
 ```c
-const sireflect_type_info_t *info = sireflect_type_info(reg, type);
+const sireflect_type_info_t *info = sireflect_type_info(type);
 
 printf("%s size=%zu align=%zu\n", info->name, info->size, info->align);
 ```
@@ -61,9 +63,9 @@ printf("%s size=%zu align=%zu\n", info->name, info->size, info->align);
 Convenience functions are also available:
 
 ```c
-const char *name = sireflect_type_name(reg, type);
-size_t size = sireflect_type_size(reg, type);
-const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+const char *name = sireflect_type_name(type);
+size_t size = sireflect_type_size(type);
+const sireflect_fields_t *fields = sireflect_type_fields(type);
 bool is_struct = sireflect_type_is_struct(info);
 bool is_array = sireflect_type_is_array(info);
 bool is_pointer = sireflect_type_is_pointer(info);
@@ -123,11 +125,11 @@ The field's `type` points to an array type. Use the array helpers to inspect the
 element:
 
 ```c
-const sireflect_type_info_t *field_type = sireflect_type_info(reg, field->type);
+const sireflect_type_info_t *field_type = sireflect_type_info(field->type);
 
 if (sireflect_type_is_array(field_type)) {
-    sireflect_handle_t element = sireflect_type_element(reg, field->type);
-    size_t count = sireflect_type_element_count(reg, field->type);
+    sireflect_handle_t element = sireflect_type_element(field->type);
+    size_t count = sireflect_type_element_count(field->type);
 }
 ```
 
@@ -153,15 +155,15 @@ fields:
 
 ```c
 sireflect_handle_t current = field->type;
-const sireflect_type_info_t *field_type = sireflect_type_info(reg, current);
+const sireflect_type_info_t *field_type = sireflect_type_info(current);
 
 if (sireflect_type_is_array(field_type)) {
-    current = sireflect_type_element(reg, current);
-    field_type = sireflect_type_info(reg, current);
+    current = sireflect_type_element(current);
+    field_type = sireflect_type_info(current);
 }
 
 if (sireflect_type_is_pointer(field_type)) {
-    sireflect_handle_t pointee = sireflect_type_pointee(reg, current);
+    sireflect_handle_t pointee = sireflect_type_pointee(current);
 }
 ```
 
@@ -181,8 +183,8 @@ if (sireflect_is_numeric(info->kind)) {
 
 ## Metadata ownership
 
-The registry owns all type names, field names, and field arrays. Returned
-pointers are borrowed views.
+Sireflect owns all type names, field names, and field arrays. Returned pointers
+are borrowed views.
 
 Do not free metadata returned by Sireflect. Do not store metadata pointers past
-`sireflect_registry_fini`.
+`sireflect_fini`.

@@ -38,7 +38,7 @@ and should be handled manually.
 
 ## Self references
 
-In the current implementation, a type must already exist in the registry before
+In the current implementation, a type must already exist in the global context before
 it can be used as a field type. This also affects pointer declarations:
 
 ```c
@@ -61,6 +61,6 @@ SIREFLECT_STRUCT(Node, {
 
 ## Thread safety
 
-The public API does not provide synchronization. Treat a registry as externally
-synchronized if multiple threads can register types or read metadata while a
-registration is in progress.
+The public API does not provide synchronization. Serialize lifecycle calls,
+registration, and metadata access externally when multiple threads use
+Sireflect.

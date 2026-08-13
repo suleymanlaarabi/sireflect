@@ -95,73 +95,65 @@ SIREFLECT_STRUCT(MultiTokenCombinations, {
 });
 
 static void register_unknown_type(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_empty_array(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[]; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_zero_array(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[0]; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_alpha_array_count(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[abc]; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_missing_array_end(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[4; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_nested_empty_array(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "BadArray", "{ f32 values[4][]; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_missing_declarator(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "BadDecl", "{ f32 x, ; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_post_pointer_qualifier(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect(reg, Position);
+    sireflect_init();
+    sireflect(Position);
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){
             "BadPointerQualifier",
             "{ Position * const stable_parent; }",
@@ -169,13 +161,12 @@ static void register_post_pointer_qualifier(void) {
             _Alignof(ptr),
         }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void register_unsupported_type_specifier(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_register_struct(
-        reg,
         &(sireflect_struct_desc_t){
             "BadTypeSpecifier",
             "{ unsigned signed int flags; }",
@@ -183,7 +174,7 @@ static void register_unsupported_type_specifier(void) {
             _Alignof(unsigned int),
         }
     );
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void check_null_type_is_struct(void) {
@@ -237,209 +228,209 @@ static void expect_abort_message(
 }
 
 void sireflect_test_impl_builtin_types(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
-    test_assert(sireflect_type_by_name(reg, "u8") != SIREFLECT_INVALID_HANDLE);
-    test_assert(sireflect_type_by_name(reg, "ptr") != SIREFLECT_INVALID_HANDLE);
-    test_uint(sireflect_type_size(reg, sireflect_type_by_name(reg, "f64")), sizeof(f64));
-    test_str(sireflect_type_name(reg, sireflect_type_by_name(reg, "char")), "char");
-    test_uint(sireflect_type_size(reg, sireflect_type_by_name(reg, "short")), sizeof(short));
-    test_uint(sireflect_type_size(reg, sireflect_type_by_name(reg, "int")), sizeof(int));
-    test_uint(sireflect_type_size(reg, sireflect_type_by_name(reg, "long")), sizeof(long));
+    test_assert(sireflect_type_by_name("u8") != SIREFLECT_INVALID_HANDLE);
+    test_assert(sireflect_type_by_name("ptr") != SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_type_size(sireflect_type_by_name("f64")), sizeof(f64));
+    test_str(sireflect_type_name(sireflect_type_by_name("char")), "char");
+    test_uint(sireflect_type_size(sireflect_type_by_name("short")), sizeof(short));
+    test_uint(sireflect_type_size(sireflect_type_by_name("int")), sizeof(int));
+    test_uint(sireflect_type_size(sireflect_type_by_name("long")), sizeof(long));
     test_uint(
-        sireflect_type_info(reg, sireflect_type_by_name(reg, "short"))->kind,
+        sireflect_type_info(sireflect_type_by_name("short"))->kind,
         sireflect_kind_short
     );
     test_uint(
-        sireflect_type_info(reg, sireflect_type_by_name(reg, "int"))->kind,
+        sireflect_type_info(sireflect_type_by_name("int"))->kind,
         sireflect_kind_int
     );
     test_uint(
-        sireflect_type_info(reg, sireflect_type_by_name(reg, "long"))->kind,
+        sireflect_type_info(sireflect_type_by_name("long"))->kind,
         sireflect_kind_long
     );
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_empty_struct(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, Empty);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(Empty);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_assert(type != SIREFLECT_INVALID_HANDLE);
-    test_uint(sireflect_type_size(reg, type), sizeof(Empty));
+    test_uint(sireflect_type_size(type), sizeof(Empty));
     test_uint(fields->field_count, 0);
     test_null(fields->fields);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_primitive_fields(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, Position);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(Position);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 2);
     test_str(fields->fields[0].name, "x");
-    test_uint(fields->fields[0].type, sireflect_type_by_name(reg, "f32"));
+    test_uint(fields->fields[0].type, sireflect_type_by_name("f32"));
     test_uint(fields->fields[0].offset, offsetof(Position, x));
     test_uint(fields->fields[0].size, sizeof(f32));
     test_uint(fields->fields[1].offset, offsetof(Position, y));
 
     Position pos = { .x = 1.0f, .y = 2.0f };
-    test_ptr(sireflect_field_ptr(reg, type, &pos, "y"), &pos.y);
+    test_ptr(sireflect_field_ptr(type, &pos, "y"), &pos.y);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_mixed_alignment(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, Mixed);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(Mixed);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 3);
     test_uint(fields->fields[0].offset, offsetof(Mixed, a));
     test_uint(fields->fields[1].offset, offsetof(Mixed, b));
     test_uint(fields->fields[2].offset, offsetof(Mixed, c));
-    test_uint(sireflect_type_size(reg, type), sizeof(Mixed));
+    test_uint(sireflect_type_size(type), sizeof(Mixed));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_pointer_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, WithPtr);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "pos");
+    sireflect_init();
+    sireflect(Position);
+    sireflect_handle_t type = sireflect(WithPtr);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "pos");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(WithPtr, pos));
     test_uint(field->size, sizeof(((WithPtr *)0)->pos));
     test_uint(field->align, _Alignof(ptr));
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(field->type);
     test_uint(pointer->kind, sireflect_kind_pointer);
     test_assert(sireflect_type_is_pointer(pointer));
-    test_uint(pointer->element_type, sireflect_type_by_name(reg, "Position"));
-    test_uint(pointer->element_type, sireflect_type_pointee(reg, field->type));
+    test_uint(pointer->element_type, sireflect_type_by_name("Position"));
+    test_uint(pointer->element_type, sireflect_type_pointee(field->type));
     test_uint(pointer->element_count, 0);
     test_str(pointer->name, "Position*");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_function_pointer_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t return_type = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, WithFunctionPtr);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "ui");
+    sireflect_init();
+    sireflect_handle_t return_type = sireflect(Position);
+    sireflect_handle_t type = sireflect(WithFunctionPtr);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "ui");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(WithFunctionPtr, ui));
     test_uint(field->size, sizeof(((WithFunctionPtr *)0)->ui));
     test_uint(field->align, _Alignof(ptr));
 
-    const sireflect_type_info_t *function_pointer = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *function_pointer = sireflect_type_info(field->type);
     test_uint(function_pointer->kind, sireflect_kind_function_pointer);
     test_assert(sireflect_type_is_pointer(function_pointer));
     test_uint(function_pointer->element_type, return_type);
-    test_uint(function_pointer->element_type, sireflect_type_pointee(reg, field->type));
+    test_uint(function_pointer->element_type, sireflect_type_pointee(field->type));
     test_uint(function_pointer->element_count, 0);
     test_str(function_pointer->name, "Position(*)()");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_pointer_compat_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, WithCharPtr);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "name");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(WithCharPtr);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "name");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(WithCharPtr, name));
     test_uint(field->size, sizeof(((WithCharPtr *)0)->name));
     test_uint(field->align, _Alignof(ptr));
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(field->type);
     test_uint(pointer->kind, sireflect_kind_pointer);
     test_assert(sireflect_type_is_pointer(pointer));
-    test_uint(pointer->element_type, sireflect_type_by_name(reg, "char"));
-    test_uint(pointer->element_type, sireflect_type_pointee(reg, field->type));
+    test_uint(pointer->element_type, sireflect_type_by_name("char"));
+    test_uint(pointer->element_type, sireflect_type_pointee(field->type));
     test_uint(pointer->element_count, 0);
     test_str(pointer->name, "char*");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_raw_pointer_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, WithRawPtr);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "raw");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(WithRawPtr);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "raw");
 
     test_not_null((void *)field);
-    test_uint(field->type, sireflect_type_by_name(reg, "ptr"));
+    test_uint(field->type, sireflect_type_by_name("ptr"));
     test_uint(field->offset, offsetof(WithRawPtr, raw));
     test_uint(field->size, sizeof(((WithRawPtr *)0)->raw));
     test_uint(field->align, _Alignof(ptr));
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(field->type);
     test_uint(pointer->kind, sireflect_kind_ptr);
     test_assert(!sireflect_type_is_pointer(pointer));
     test_uint(pointer->element_type, SIREFLECT_INVALID_HANDLE);
     test_uint(pointer->element_count, 0);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_native_types(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, NativeTypes);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(NativeTypes);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 5);
 
     test_str(fields->fields[0].name, "a");
-    test_uint(fields->fields[0].type, sireflect_type_by_name(reg, "short"));
+    test_uint(fields->fields[0].type, sireflect_type_by_name("short"));
     test_uint(fields->fields[0].offset, offsetof(NativeTypes, a));
     test_uint(fields->fields[0].size, sizeof(short));
-    test_uint(sireflect_type_info(reg, fields->fields[0].type)->kind, sireflect_kind_short);
+    test_uint(sireflect_type_info(fields->fields[0].type)->kind, sireflect_kind_short);
 
     test_str(fields->fields[1].name, "b");
-    test_uint(fields->fields[1].type, sireflect_type_by_name(reg, "int"));
+    test_uint(fields->fields[1].type, sireflect_type_by_name("int"));
     test_uint(fields->fields[1].offset, offsetof(NativeTypes, b));
     test_uint(fields->fields[1].size, sizeof(int));
-    test_uint(sireflect_type_info(reg, fields->fields[1].type)->kind, sireflect_kind_int);
+    test_uint(sireflect_type_info(fields->fields[1].type)->kind, sireflect_kind_int);
 
     test_str(fields->fields[2].name, "c");
-    test_uint(fields->fields[2].type, sireflect_type_by_name(reg, "long"));
+    test_uint(fields->fields[2].type, sireflect_type_by_name("long"));
     test_uint(fields->fields[2].offset, offsetof(NativeTypes, c));
     test_uint(fields->fields[2].size, sizeof(long));
-    test_uint(sireflect_type_info(reg, fields->fields[2].type)->kind, sireflect_kind_long);
+    test_uint(sireflect_type_info(fields->fields[2].type)->kind, sireflect_kind_long);
 
-    test_uint(fields->fields[3].type, sireflect_type_by_name(reg, "float"));
+    test_uint(fields->fields[3].type, sireflect_type_by_name("float"));
     test_uint(fields->fields[3].offset, offsetof(NativeTypes, d));
     test_uint(fields->fields[3].size, sizeof(float));
 
-    test_uint(fields->fields[4].type, sireflect_type_by_name(reg, "double"));
+    test_uint(fields->fields[4].type, sireflect_type_by_name("double"));
     test_uint(fields->fields[4].offset, offsetof(NativeTypes, e));
     test_uint(fields->fields[4].size, sizeof(double));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_field_copy(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, Position);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(Position);
 
     Position pos = { 0 };
     f32 value = 42.0f;
-    test_int(sireflect_field_copy(reg, type, &pos, "x", &value), 0);
+    test_int(sireflect_field_copy(type, &pos, "x", &value), 0);
     test_flt(pos.x, 42.0);
-    test_null((void *)sireflect_field_info(reg, type, "missing"));
-    test_int(sireflect_field_copy(reg, type, &pos, "missing", &value), -1);
+    test_null((void *)sireflect_field_info(type, "missing"));
+    test_int(sireflect_field_copy(type, &pos, "missing", &value), -1);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_kind_helpers(void) {
@@ -471,14 +462,14 @@ void sireflect_test_impl_kind_helpers(void) {
 }
 
 void sireflect_test_impl_type_is_struct_helper(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t struct_type = sireflect(reg, Position);
-    sireflect_handle_t int_type = sireflect_type_by_name(reg, "int");
+    sireflect_init();
+    sireflect_handle_t struct_type = sireflect(Position);
+    sireflect_handle_t int_type = sireflect_type_by_name("int");
 
-    test_assert(sireflect_type_is_struct(sireflect_type_info(reg, struct_type)));
-    test_assert(!sireflect_type_is_struct(sireflect_type_info(reg, int_type)));
+    test_assert(sireflect_type_is_struct(sireflect_type_info(struct_type)));
+    test_assert(!sireflect_type_is_struct(sireflect_type_info(int_type)));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_type_is_struct_asserts(void) {
@@ -487,9 +478,9 @@ void sireflect_test_impl_type_is_struct_asserts(void) {
 }
 
 void sireflect_test_impl_array_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, ArraySyntax);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "values");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(ArraySyntax);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "values");
 
     test_not_null((void *)field);
     test_str(field->name, "values");
@@ -497,34 +488,34 @@ void sireflect_test_impl_array_field(void) {
     test_uint(field->size, sizeof(((ArraySyntax *)0)->values));
     test_uint(field->align, _Alignof(f32));
 
-    const sireflect_type_info_t *array = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *array = sireflect_type_info(field->type);
     test_assert(sireflect_type_is_array(array));
     test_uint(array->kind, sireflect_kind_array);
-    test_uint(array->element_type, sireflect_type_by_name(reg, "f32"));
+    test_uint(array->element_type, sireflect_type_by_name("f32"));
     test_uint(array->element_count, 4);
-    test_uint(sireflect_type_element(reg, field->type), sireflect_type_by_name(reg, "f32"));
-    test_uint(sireflect_type_element_count(reg, field->type), 4);
+    test_uint(sireflect_type_element(field->type), sireflect_type_by_name("f32"));
+    test_uint(sireflect_type_element_count(field->type), 4);
     test_uint(array->size, sizeof(f32) * 4);
     test_uint(array->align, _Alignof(f32));
     test_str(array->name, "f32[4]");
 
     ArraySyntax obj = { 0 };
-    test_ptr(sireflect_field_ptr(reg, type, &obj, "values"), &obj.values);
+    test_ptr(sireflect_field_ptr(type, &obj, "values"), &obj.values);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_struct_array_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t position = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, StructArray);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "positions");
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+    sireflect_handle_t type = sireflect(StructArray);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "positions");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(StructArray, positions));
     test_uint(field->size, sizeof(((StructArray *)0)->positions));
 
-    const sireflect_type_info_t *array = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *array = sireflect_type_info(field->type);
     test_assert(sireflect_type_is_array(array));
     test_uint(array->element_type, position);
     test_uint(array->element_count, 2);
@@ -532,64 +523,64 @@ void sireflect_test_impl_struct_array_field(void) {
     test_uint(array->align, _Alignof(Position));
     test_str(array->name, "Position[2]");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_repeated_array_type(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, RepeatedArray);
-    const sireflect_field_info_t *a = sireflect_field_info(reg, type, "a");
-    const sireflect_field_info_t *b = sireflect_field_info(reg, type, "b");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(RepeatedArray);
+    const sireflect_field_info_t *a = sireflect_field_info(type, "a");
+    const sireflect_field_info_t *b = sireflect_field_info(type, "b");
 
     test_not_null((void *)a);
     test_not_null((void *)b);
     test_uint(a->type, b->type);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_pointer_array_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t position = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, PointerArray);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "items");
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+    sireflect_handle_t type = sireflect(PointerArray);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "items");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(PointerArray, items));
     test_uint(field->size, sizeof(((PointerArray *)0)->items));
 
-    const sireflect_type_info_t *array = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *array = sireflect_type_info(field->type);
     test_assert(sireflect_type_is_array(array));
     test_uint(array->element_count, 8);
     test_uint(array->size, sizeof(Position *) * 8);
     test_uint(array->align, _Alignof(ptr));
     test_str(array->name, "Position*[8]");
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, array->element_type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(array->element_type);
     test_assert(sireflect_type_is_pointer(pointer));
     test_uint(pointer->element_type, position);
     test_str(pointer->name, "Position*");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_matrix_array_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, Matrix);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "matrix");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(Matrix);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "matrix");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(Matrix, matrix));
     test_uint(field->size, sizeof(((Matrix *)0)->matrix));
 
-    const sireflect_type_info_t *outer = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *outer = sireflect_type_info(field->type);
     test_assert(sireflect_type_is_array(outer));
     test_uint(outer->element_count, 4);
     test_str(outer->name, "f32[4][4]");
 
-    const sireflect_type_info_t *inner = sireflect_type_info(reg, outer->element_type);
+    const sireflect_type_info_t *inner = sireflect_type_info(outer->element_type);
     test_assert(sireflect_type_is_array(inner));
-    test_uint(inner->element_type, sireflect_type_by_name(reg, "f32"));
+    test_uint(inner->element_type, sireflect_type_by_name("f32"));
     test_uint(inner->element_count, 4);
     test_uint(inner->size, sizeof(f32) * 4);
     test_uint(inner->align, _Alignof(f32));
@@ -598,41 +589,41 @@ void sireflect_test_impl_matrix_array_field(void) {
     test_uint(outer->size, sizeof(f32) * 4 * 4);
     test_uint(outer->align, _Alignof(f32));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_pointer_matrix_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t position = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, PointerMatrix);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "items");
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+    sireflect_handle_t type = sireflect(PointerMatrix);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "items");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(PointerMatrix, items));
     test_uint(field->size, sizeof(((PointerMatrix *)0)->items));
 
-    const sireflect_type_info_t *outer = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *outer = sireflect_type_info(field->type);
     test_assert(sireflect_type_is_array(outer));
     test_uint(outer->element_count, 2);
     test_str(outer->name, "Position*[2][3]");
 
-    const sireflect_type_info_t *inner = sireflect_type_info(reg, outer->element_type);
+    const sireflect_type_info_t *inner = sireflect_type_info(outer->element_type);
     test_assert(sireflect_type_is_array(inner));
     test_uint(inner->element_count, 3);
     test_str(inner->name, "Position*[3]");
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, inner->element_type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(inner->element_type);
     test_assert(sireflect_type_is_pointer(pointer));
     test_uint(pointer->element_type, position);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_multiple_primitive_declarators(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, MultiplePrimitiveDeclarators);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
-    sireflect_handle_t f32_type = sireflect_type_by_name(reg, "f32");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(MultiplePrimitiveDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
+    sireflect_handle_t f32_type = sireflect_type_by_name("f32");
 
     test_uint(fields->field_count, 2);
     test_str(fields->fields[0].name, "x");
@@ -644,14 +635,14 @@ void sireflect_test_impl_multiple_primitive_declarators(void) {
     test_uint(fields->fields[1].offset, offsetof(MultiplePrimitiveDeclarators, y));
     test_uint(fields->fields[1].size, sizeof(f32));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_multiple_struct_declarators(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t position = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, MultipleStructDeclarators);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+    sireflect_handle_t type = sireflect(MultipleStructDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 2);
     test_str(fields->fields[0].name, "a");
@@ -663,13 +654,13 @@ void sireflect_test_impl_multiple_struct_declarators(void) {
     test_uint(fields->fields[1].offset, offsetof(MultipleStructDeclarators, b));
     test_uint(fields->fields[1].size, sizeof(Position));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_multiple_array_declarators(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, MultipleArrayDeclarators);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(MultipleArrayDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 2);
     test_str(fields->fields[0].name, "values");
@@ -679,25 +670,25 @@ void sireflect_test_impl_multiple_array_declarators(void) {
     test_uint(fields->fields[1].offset, offsetof(MultipleArrayDeclarators, more));
     test_uint(fields->fields[1].size, sizeof(((MultipleArrayDeclarators *)0)->more));
 
-    const sireflect_type_info_t *values = sireflect_type_info(reg, fields->fields[0].type);
-    const sireflect_type_info_t *more = sireflect_type_info(reg, fields->fields[1].type);
+    const sireflect_type_info_t *values = sireflect_type_info(fields->fields[0].type);
+    const sireflect_type_info_t *more = sireflect_type_info(fields->fields[1].type);
     test_assert(sireflect_type_is_array(values));
     test_assert(sireflect_type_is_array(more));
-    test_uint(values->element_type, sireflect_type_by_name(reg, "int"));
+    test_uint(values->element_type, sireflect_type_by_name("int"));
     test_uint(values->element_count, 4);
     test_str(values->name, "int[4]");
-    test_uint(more->element_type, sireflect_type_by_name(reg, "int"));
+    test_uint(more->element_type, sireflect_type_by_name("int"));
     test_uint(more->element_count, 8);
     test_str(more->name, "int[8]");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_multiple_pointer_declarators(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t position = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, MultiplePointerDeclarators);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+    sireflect_handle_t type = sireflect(MultiplePointerDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 2);
     test_str(fields->fields[0].name, "parent");
@@ -708,19 +699,19 @@ void sireflect_test_impl_multiple_pointer_declarators(void) {
     test_uint(fields->fields[1].size, sizeof(((MultiplePointerDeclarators *)0)->next));
     test_uint(fields->fields[0].type, fields->fields[1].type);
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, fields->fields[0].type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(fields->fields[0].type);
     test_assert(sireflect_type_is_pointer(pointer));
     test_uint(pointer->element_type, position);
     test_str(pointer->name, "Position*");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_multiple_mixed_declarators(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t position = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, MultipleMixedDeclarators);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+    sireflect_handle_t type = sireflect(MultipleMixedDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 2);
     test_str(fields->fields[0].name, "value");
@@ -731,35 +722,35 @@ void sireflect_test_impl_multiple_mixed_declarators(void) {
     test_uint(fields->fields[1].offset, offsetof(MultipleMixedDeclarators, ref));
     test_uint(fields->fields[1].size, sizeof(((MultipleMixedDeclarators *)0)->ref));
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, fields->fields[1].type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(fields->fields[1].type);
     test_assert(sireflect_type_is_pointer(pointer));
     test_uint(pointer->element_type, position);
     test_str(pointer->name, "Position*");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_qualified_scalar_fields(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, QualifiedScalars);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(QualifiedScalars);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 3);
 
     test_str(fields->fields[0].name, "x");
-    test_uint(fields->fields[0].type, sireflect_type_by_name(reg, "f32"));
+    test_uint(fields->fields[0].type, sireflect_type_by_name("f32"));
     test_uint(fields->fields[0].offset, offsetof(QualifiedScalars, x));
     test_uint(fields->fields[0].size, sizeof(f32));
     test_uint(fields->fields[0].qualifiers, SIREFLECT_QUAL_CONST);
 
     test_str(fields->fields[1].name, "y");
-    test_uint(fields->fields[1].type, sireflect_type_by_name(reg, "int"));
+    test_uint(fields->fields[1].type, sireflect_type_by_name("int"));
     test_uint(fields->fields[1].offset, offsetof(QualifiedScalars, y));
     test_uint(fields->fields[1].size, sizeof(int));
     test_uint(fields->fields[1].qualifiers, SIREFLECT_QUAL_VOLATILE);
 
     test_str(fields->fields[2].name, "flags");
-    test_uint(fields->fields[2].type, sireflect_type_by_name(reg, "u32"));
+    test_uint(fields->fields[2].type, sireflect_type_by_name("u32"));
     test_uint(fields->fields[2].offset, offsetof(QualifiedScalars, flags));
     test_uint(fields->fields[2].size, sizeof(u32));
     test_uint(
@@ -767,14 +758,14 @@ void sireflect_test_impl_qualified_scalar_fields(void) {
         SIREFLECT_QUAL_CONST | SIREFLECT_QUAL_VOLATILE
     );
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_qualified_pointer_field(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t position = sireflect(reg, Position);
-    sireflect_handle_t type = sireflect(reg, QualifiedPointer);
-    const sireflect_field_info_t *field = sireflect_field_info(reg, type, "parent");
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+    sireflect_handle_t type = sireflect(QualifiedPointer);
+    const sireflect_field_info_t *field = sireflect_field_info(type, "parent");
 
     test_not_null((void *)field);
     test_uint(field->offset, offsetof(QualifiedPointer, parent));
@@ -782,19 +773,19 @@ void sireflect_test_impl_qualified_pointer_field(void) {
     test_uint(field->align, _Alignof(ptr));
     test_uint(field->qualifiers, SIREFLECT_QUAL_CONST);
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, field->type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(field->type);
     test_assert(sireflect_type_is_pointer(pointer));
     test_uint(pointer->element_type, position);
     test_str(pointer->name, "Position*");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_qualified_multiple_declarators(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, QualifiedMultipleDeclarators);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
-    sireflect_handle_t f32_type = sireflect_type_by_name(reg, "f32");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(QualifiedMultipleDeclarators);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
+    sireflect_handle_t f32_type = sireflect_type_by_name("f32");
 
     test_uint(fields->field_count, 2);
     test_uint(fields->fields[0].type, f32_type);
@@ -804,20 +795,19 @@ void sireflect_test_impl_qualified_multiple_declarators(void) {
     test_uint(fields->fields[1].offset, offsetof(QualifiedMultipleDeclarators, y));
     test_uint(fields->fields[1].qualifiers, SIREFLECT_QUAL_CONST);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 static void expect_multi_token_builtin(
-    sireflect_registry_t *reg,
     const char *name,
     sireflect_kind_t kind,
     size_t size,
     size_t align
 ) {
-    sireflect_handle_t handle = sireflect_type_by_name(reg, name);
+    sireflect_handle_t handle = sireflect_type_by_name(name);
     test_assert(handle != SIREFLECT_INVALID_HANDLE);
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, handle);
+    const sireflect_type_info_t *type = sireflect_type_info(handle);
     test_str(type->name, name);
     test_uint(type->kind, kind);
     test_uint(type->size, size);
@@ -826,52 +816,45 @@ static void expect_multi_token_builtin(
 }
 
 void sireflect_test_impl_multi_token_builtin_registry(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     expect_multi_token_builtin(
-        reg,
         "signed char",
         sireflect_kind_signed_char,
         sizeof(signed char),
         _Alignof(signed char)
     );
     expect_multi_token_builtin(
-        reg,
         "unsigned char",
         sireflect_kind_unsigned_char,
         sizeof(unsigned char),
         _Alignof(unsigned char)
     );
     expect_multi_token_builtin(
-        reg,
         "unsigned short",
         sireflect_kind_unsigned_short,
         sizeof(unsigned short),
         _Alignof(unsigned short)
     );
     expect_multi_token_builtin(
-        reg,
         "unsigned int",
         sireflect_kind_unsigned_int,
         sizeof(unsigned int),
         _Alignof(unsigned int)
     );
     expect_multi_token_builtin(
-        reg,
         "unsigned long",
         sireflect_kind_unsigned_long,
         sizeof(unsigned long),
         _Alignof(unsigned long)
     );
     expect_multi_token_builtin(
-        reg,
         "long long",
         sireflect_kind_long_long,
         sizeof(long long),
         _Alignof(long long)
     );
     expect_multi_token_builtin(
-        reg,
         "unsigned long long",
         sireflect_kind_unsigned_long_long,
         sizeof(unsigned long long),
@@ -886,69 +869,69 @@ void sireflect_test_impl_multi_token_builtin_registry(void) {
         "unsigned long long"
     );
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_multi_token_fields(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, MultiTokenBuiltins);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    sireflect_init();
+    sireflect_handle_t type = sireflect(MultiTokenBuiltins);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
 
     test_uint(fields->field_count, 7);
 
     test_str(fields->fields[0].name, "code");
-    test_uint(fields->fields[0].type, sireflect_type_by_name(reg, "signed char"));
+    test_uint(fields->fields[0].type, sireflect_type_by_name("signed char"));
     test_uint(fields->fields[0].offset, offsetof(MultiTokenBuiltins, code));
     test_uint(fields->fields[0].size, sizeof(signed char));
     test_uint(fields->fields[0].align, _Alignof(signed char));
 
     test_str(fields->fields[1].name, "byte");
-    test_uint(fields->fields[1].type, sireflect_type_by_name(reg, "unsigned char"));
+    test_uint(fields->fields[1].type, sireflect_type_by_name("unsigned char"));
     test_uint(fields->fields[1].offset, offsetof(MultiTokenBuiltins, byte));
     test_uint(fields->fields[1].size, sizeof(unsigned char));
     test_uint(fields->fields[1].align, _Alignof(unsigned char));
 
     test_str(fields->fields[2].name, "small");
-    test_uint(fields->fields[2].type, sireflect_type_by_name(reg, "unsigned short"));
+    test_uint(fields->fields[2].type, sireflect_type_by_name("unsigned short"));
     test_uint(fields->fields[2].offset, offsetof(MultiTokenBuiltins, small));
     test_uint(fields->fields[2].size, sizeof(unsigned short));
     test_uint(fields->fields[2].align, _Alignof(unsigned short));
 
     test_str(fields->fields[3].name, "flags");
-    test_uint(fields->fields[3].type, sireflect_type_by_name(reg, "unsigned int"));
+    test_uint(fields->fields[3].type, sireflect_type_by_name("unsigned int"));
     test_uint(fields->fields[3].offset, offsetof(MultiTokenBuiltins, flags));
     test_uint(fields->fields[3].size, sizeof(unsigned int));
     test_uint(fields->fields[3].align, _Alignof(unsigned int));
 
     test_str(fields->fields[4].name, "span");
-    test_uint(fields->fields[4].type, sireflect_type_by_name(reg, "unsigned long"));
+    test_uint(fields->fields[4].type, sireflect_type_by_name("unsigned long"));
     test_uint(fields->fields[4].offset, offsetof(MultiTokenBuiltins, span));
     test_uint(fields->fields[4].size, sizeof(unsigned long));
     test_uint(fields->fields[4].align, _Alignof(unsigned long));
 
     test_str(fields->fields[5].name, "count");
-    test_uint(fields->fields[5].type, sireflect_type_by_name(reg, "long long"));
+    test_uint(fields->fields[5].type, sireflect_type_by_name("long long"));
     test_uint(fields->fields[5].offset, offsetof(MultiTokenBuiltins, count));
     test_uint(fields->fields[5].size, sizeof(long long));
     test_uint(fields->fields[5].align, _Alignof(long long));
 
     test_str(fields->fields[6].name, "mask");
-    test_uint(fields->fields[6].type, sireflect_type_by_name(reg, "unsigned long long"));
+    test_uint(fields->fields[6].type, sireflect_type_by_name("unsigned long long"));
     test_uint(fields->fields[6].offset, offsetof(MultiTokenBuiltins, mask));
     test_uint(fields->fields[6].size, sizeof(unsigned long long));
     test_uint(fields->fields[6].align, _Alignof(unsigned long long));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_multi_token_arrays_and_pointers(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect(reg, MultiTokenCombinations);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
-    sireflect_handle_t unsigned_int_type = sireflect_type_by_name(reg, "unsigned int");
+    sireflect_init();
+    sireflect_handle_t type = sireflect(MultiTokenCombinations);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
+    sireflect_handle_t unsigned_int_type = sireflect_type_by_name("unsigned int");
     sireflect_handle_t unsigned_long_long_type =
-        sireflect_type_by_name(reg, "unsigned long long");
-    sireflect_handle_t signed_char_type = sireflect_type_by_name(reg, "signed char");
+        sireflect_type_by_name("unsigned long long");
+    sireflect_handle_t signed_char_type = sireflect_type_by_name("signed char");
 
     test_uint(fields->field_count, 4);
     test_uint(fields->fields[0].type, unsigned_int_type);
@@ -958,7 +941,7 @@ void sireflect_test_impl_multi_token_arrays_and_pointers(void) {
     test_uint(fields->fields[1].offset, offsetof(MultiTokenCombinations, b));
     test_uint(fields->fields[1].qualifiers, SIREFLECT_QUAL_CONST);
 
-    const sireflect_type_info_t *array = sireflect_type_info(reg, fields->fields[2].type);
+    const sireflect_type_info_t *array = sireflect_type_info(fields->fields[2].type);
     test_assert(sireflect_type_is_array(array));
     test_uint(fields->fields[2].offset, offsetof(MultiTokenCombinations, values));
     test_uint(fields->fields[2].size, sizeof(((MultiTokenCombinations *)0)->values));
@@ -966,42 +949,41 @@ void sireflect_test_impl_multi_token_arrays_and_pointers(void) {
     test_uint(array->element_count, 2);
     test_str(array->name, "unsigned long long[2]");
 
-    const sireflect_type_info_t *pointer = sireflect_type_info(reg, fields->fields[3].type);
+    const sireflect_type_info_t *pointer = sireflect_type_info(fields->fields[3].type);
     test_assert(sireflect_type_is_pointer(pointer));
     test_uint(fields->fields[3].offset, offsetof(MultiTokenCombinations, code));
     test_uint(fields->fields[3].size, sizeof(((MultiTokenCombinations *)0)->code));
     test_uint(pointer->element_type, signed_char_type);
     test_str(pointer->name, "signed char*");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_valid_struct(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect_handle_t type = sireflect_try_register_struct(reg, &sireflect_desc(Position));
+    sireflect_init();
+    sireflect_handle_t type = sireflect_try_register_struct(&sireflect_desc(Position));
 
     test_assert(type != SIREFLECT_INVALID_HANDLE);
-    test_uint(type, sireflect_type_by_name(reg, "Position"));
+    test_uint(type, sireflect_type_by_name("Position"));
 
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
     test_uint(fields->field_count, 2);
     test_str(fields->fields[0].name, "x");
     test_str(fields->fields[1].name, "y");
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_dynamic_struct_layout(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
     sireflect_handle_t type = sireflect_try_register_dynamic_struct(
-        reg,
         "DynamicMixed",
         "{ u8 a; f64 b; u32 c; }"
     );
 
     test_assert(type != SIREFLECT_INVALID_HANDLE);
-    const sireflect_type_info_t *info = sireflect_type_info(reg, type);
-    const sireflect_fields_t *fields = sireflect_type_fields(reg, type);
+    const sireflect_type_info_t *info = sireflect_type_info(type);
+    const sireflect_fields_t *fields = sireflect_type_fields(type);
     test_uint(info->size, 24);
     test_uint(info->align, 8);
     test_uint(fields->field_count, 3);
@@ -1010,123 +992,113 @@ void sireflect_test_impl_try_register_dynamic_struct_layout(void) {
     test_uint(fields->fields[2].offset, 16);
 
     sireflect_handle_t empty =
-        sireflect_try_register_dynamic_struct(reg, "DynamicTag", "{}");
-    const sireflect_type_info_t *empty_info = sireflect_type_info(reg, empty);
+        sireflect_try_register_dynamic_struct("DynamicTag", "{}");
+    const sireflect_type_info_t *empty_info = sireflect_type_info(empty);
     test_uint(empty_info->size, 0);
     test_uint(empty_info->align, 1);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_dynamic_struct_errors(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     test_uint(
-        sireflect_try_register_dynamic_struct(reg, "BadDynamic", "{ Missing value; }"),
+        sireflect_try_register_dynamic_struct("BadDynamic", "{ Missing value; }"),
         SIREFLECT_INVALID_HANDLE
     );
     test_not_null((void *)sireflect_error());
     test_uint(
-        sireflect_try_register_dynamic_struct(reg, "int", "{ f32 value; }"),
+        sireflect_try_register_dynamic_struct("int", "{ f32 value; }"),
         SIREFLECT_INVALID_HANDLE
     );
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_invalid_descriptor(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
-    test_uint(sireflect_try_register_struct(NULL, &sireflect_desc(Position)), SIREFLECT_INVALID_HANDLE);
-    test_uint(sireflect_try_register_struct(reg, NULL), SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_try_register_struct(NULL), SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_try_register_struct(NULL), SIREFLECT_INVALID_HANDLE);
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ NULL, "{ f32 x; }", sizeof(f32), _Alignof(f32) }
         ),
         SIREFLECT_INVALID_HANDLE
     );
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ "Bad", NULL, sizeof(f32), _Alignof(f32) }
         ),
         SIREFLECT_INVALID_HANDLE
     );
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ "Bad", "{ f32 x; }", sizeof(f32), 0 }
         ),
         SIREFLECT_INVALID_HANDLE
     );
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_unknown_type_returns_invalid(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     sireflect_handle_t type = sireflect_try_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
     );
 
     test_uint(type, SIREFLECT_INVALID_HANDLE);
-    test_uint(sireflect_type_by_name(reg, "Bad"), SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_type_by_name("Bad"), SIREFLECT_INVALID_HANDLE);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_array_errors_return_invalid(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ "BadEmptyArray", "{ f32 values[]; }", sizeof(ptr), _Alignof(ptr) }
         ),
         SIREFLECT_INVALID_HANDLE
     );
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ "BadZeroArray", "{ f32 values[0]; }", sizeof(ptr), _Alignof(ptr) }
         ),
         SIREFLECT_INVALID_HANDLE
     );
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ "BadAlphaArray", "{ f32 values[abc]; }", sizeof(ptr), _Alignof(ptr) }
         ),
         SIREFLECT_INVALID_HANDLE
     );
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ "BadArrayEnd", "{ f32 values[4; }", sizeof(ptr), _Alignof(ptr) }
         ),
         SIREFLECT_INVALID_HANDLE
     );
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_declarator_errors_return_invalid(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
-    sireflect(reg, Position);
+    sireflect_init();
+    sireflect(Position);
 
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){ "BadDecl", "{ f32 x, ; }", sizeof(ptr), _Alignof(ptr) }
         ),
         SIREFLECT_INVALID_HANDLE
     );
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){
                 "BadPointerQualifier",
                 "{ Position * const stable_parent; }",
@@ -1138,7 +1110,6 @@ void sireflect_test_impl_try_register_declarator_errors_return_invalid(void) {
     );
     test_uint(
         sireflect_try_register_struct(
-            reg,
             &(sireflect_struct_desc_t){
                 "BadTypeSpecifier",
                 "{ unsigned signed int flags; }",
@@ -1149,45 +1120,42 @@ void sireflect_test_impl_try_register_declarator_errors_return_invalid(void) {
         SIREFLECT_INVALID_HANDLE
     );
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_existing_incompatible_type_returns_invalid(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     sireflect_handle_t type = sireflect_try_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "int", "{ f32 x; }", sizeof(f32), _Alignof(f32) }
     );
 
     test_uint(type, SIREFLECT_INVALID_HANDLE);
-    test_assert(!sireflect_type_is_struct(sireflect_type_info(reg, sireflect_type_by_name(reg, "int"))));
+    test_assert(!sireflect_type_is_struct(sireflect_type_info(sireflect_type_by_name("int"))));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_registry_usable_after_failure(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     sireflect_handle_t failed = sireflect_try_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
     );
-    sireflect_handle_t position = sireflect_try_register_struct(reg, &sireflect_desc(Position));
+    sireflect_handle_t position = sireflect_try_register_struct(&sireflect_desc(Position));
 
     test_uint(failed, SIREFLECT_INVALID_HANDLE);
     test_assert(position != SIREFLECT_INVALID_HANDLE);
-    test_uint(position, sireflect_type_by_name(reg, "Position"));
-    test_uint(sireflect_type_by_name(reg, "Bad"), SIREFLECT_INVALID_HANDLE);
+    test_uint(position, sireflect_type_by_name("Position"));
+    test_uint(sireflect_type_by_name("Bad"), SIREFLECT_INVALID_HANDLE);
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_error_message_persists(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     sireflect_handle_t failed = sireflect_try_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
     );
     const char *first = sireflect_error();
@@ -1199,14 +1167,13 @@ void sireflect_test_impl_try_register_error_message_persists(void) {
     test_str(first, second);
     test_not_null((void *)strstr(first, "unknown field type 'Missing'"));
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_error_cleared_by_public_call(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     sireflect_handle_t failed = sireflect_try_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
     );
 
@@ -1216,21 +1183,20 @@ void sireflect_test_impl_try_register_error_cleared_by_public_call(void) {
     (void)sireflect_kind_name(sireflect_kind_u8);
     test_null((void *)sireflect_error());
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
 }
 
 void sireflect_test_impl_try_register_error_cleared_by_registry_fini(void) {
-    sireflect_registry_t *reg = sireflect_registry_init();
+    sireflect_init();
 
     sireflect_handle_t failed = sireflect_try_register_struct(
-        reg,
         &(sireflect_struct_desc_t){ "Bad", "{ Missing field; }", sizeof(ptr), _Alignof(ptr) }
     );
 
     test_uint(failed, SIREFLECT_INVALID_HANDLE);
     test_not_null((void *)sireflect_error());
 
-    sireflect_registry_fini(reg);
+    sireflect_fini();
     test_null((void *)sireflect_error());
 }
 
@@ -1358,4 +1324,41 @@ void sireflect_test_impl_unsupported_type_specifier_diagnostic(void) {
         "struct 'BadTypeSpecifier'",
         "actual identifier 'signed'"
     );
+}
+
+static void fini_without_init(void) {
+    sireflect_fini();
+}
+
+void sireflect_test_impl_nested_init_fini(void) {
+    sireflect_init();
+    sireflect_handle_t position = sireflect(Position);
+
+    sireflect_init();
+    test_uint(sireflect_type_by_name("Position"), position);
+
+    sireflect_fini();
+    test_uint(sireflect_type_by_name("Position"), position);
+
+    sireflect_fini();
+    sireflect_init();
+    test_uint(sireflect_type_by_name("Position"), SIREFLECT_INVALID_HANDLE);
+    sireflect_fini();
+}
+
+void sireflect_test_impl_fini_without_init_asserts(void) {
+    expect_abort_message(
+        fini_without_init,
+        "sireflect assertion failed",
+        "sireflect is not initialized",
+        "sireflect_fini"
+    );
+}
+
+void sireflect_test_impl_try_register_before_init(void) {
+    test_uint(
+        sireflect_try_register_struct(&sireflect_desc(Position)),
+        SIREFLECT_INVALID_HANDLE
+    );
+    test_str(sireflect_error(), "sireflect is not initialized");
 }

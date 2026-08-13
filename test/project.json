@@ -116,6 +116,14 @@
           "post_pointer_qualifier_diagnostic",
           "unsupported_type_specifier_diagnostic"
         ]
+      },
+      {
+        "id": "lifecycle",
+        "testcases": [
+          "nested_init_fini",
+          "fini_without_init_asserts",
+          "try_register_before_init"
+        ]
       }
     ]
   }

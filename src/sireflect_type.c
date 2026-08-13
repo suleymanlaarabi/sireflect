@@ -103,30 +103,30 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
 }
 
 const sireflect_type_info_t *
-sireflect_type_info(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_info(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    return sireflect_registry_const_type_at(reg, ref);
+    return sireflect_registry_const_type_at(ref);
 }
 
 const sireflect_fields_t *
-sireflect_type_fields(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_fields(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     return &type->fields;
 }
 
-size_t sireflect_type_size(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+size_t sireflect_type_size(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    return sireflect_type_info(reg, ref)->size;
+    return sireflect_type_info(ref)->size;
 }
 
-const char *sireflect_type_name(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+const char *sireflect_type_name(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    return sireflect_type_info(reg, ref)->name;
+    return sireflect_type_info(ref)->name;
 }
 
 bool sireflect_type_is_struct(const sireflect_type_info_t *info) {
@@ -151,28 +151,28 @@ bool sireflect_type_is_pointer(const sireflect_type_info_t *info) {
 }
 
 sireflect_handle_t
-sireflect_type_element(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_element(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
     return type->element_type;
 }
 
 size_t
-sireflect_type_element_count(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_element_count(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     sireflect_assert(type->kind == sireflect_kind_array, "type must be an array");
     return type->element_count;
 }
 
 sireflect_handle_t
-sireflect_type_pointee(const sireflect_registry_t *reg, sireflect_handle_t ref) {
+sireflect_type_pointee(sireflect_handle_t ref) {
     sireflect_error_clear();
 
-    const sireflect_type_info_t *type = sireflect_type_info(reg, ref);
+    const sireflect_type_info_t *type = sireflect_type_info(ref);
     sireflect_assert(
         type->kind == sireflect_kind_pointer || type->kind == sireflect_kind_function_pointer,
         "type must be a typed pointer"

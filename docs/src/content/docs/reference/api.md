@@ -30,14 +30,13 @@ typedef void *ptr;
 ## Core types
 
 ```c
-typedef struct sireflect_registry_t sireflect_registry_t;
 typedef uint64_t sireflect_handle_t;
 
 #define SIREFLECT_INVALID_HANDLE ((sireflect_handle_t)0)
 ```
 
-`sireflect_registry_t` owns all metadata. `sireflect_handle_t` identifies a type
-inside one registry.
+Sireflect's internal process-wide context owns all metadata.
+`sireflect_handle_t` identifies a type while that context is initialized.
 
 ## Assertions
 
@@ -128,7 +127,7 @@ typedef struct {
 } sireflect_field_info_t;
 ```
 
-Field metadata is owned by the registry.
+Field metadata is owned by Sireflect and returned as borrowed views.
 
 ## Field list
 
@@ -170,11 +169,11 @@ type handle, and `element_count == 0`. Other types use
 
 ```c
 #define SIREFLECT_STRUCT(name, ...)
-#define sireflect(reg, name)
+#define sireflect(name)
 ```
 
 `SIREFLECT_STRUCT` declares a typedef struct and captures its field list as a
-string. `sireflect(reg, name)` registers that struct in a registry.
+string. `sireflect(name)` registers that struct in the global context.
 
 Example:
 
@@ -184,38 +183,38 @@ SIREFLECT_STRUCT(Position, {
     f32 y;
 });
 
-sireflect_handle_t type = sireflect(reg, Position);
+sireflect_handle_t type = sireflect(Position);
 ```
 
-## Registry lifecycle
+## Sireflect lifecycle
 
 ```c
-sireflect_registry_t *sireflect_registry_init(void);
-void sireflect_registry_fini(sireflect_registry_t *reg);
+void sireflect_init(void);
+void sireflect_fini(void);
 ```
 
-`sireflect_registry_init` creates a registry and registers built-in primitive
-types. `sireflect_registry_fini` destroys the registry and all metadata it owns.
+The calls are reference-counted. The first `sireflect_init` initializes the
+context and registers built-in primitive types. Metadata is destroyed only by
+the matching final `sireflect_fini`.
 
 ## Register structs
 
 ```c
 const char *sireflect_error(void);
 
-sireflect_handle_t sireflect_register_struct(
-    sireflect_registry_t *reg,
-    const sireflect_struct_desc_t *desc
-);
+sireflect_handle_t sireflect_register_struct(const sireflect_struct_desc_t *desc);
 
-sireflect_handle_t sireflect_try_register_struct(
-    sireflect_registry_t *reg,
-    const sireflect_struct_desc_t *desc
+sireflect_handle_t sireflect_try_register_struct(const sireflect_struct_desc_t *desc);
+
+sireflect_handle_t sireflect_try_register_dynamic_struct(
+    const char *name,
+    const char *fields
 );
 ```
 
 Registers a struct type from a descriptor containing its name, textual field
 list, size, and alignment. Most user code should call the
-`sireflect(reg, TypeName)` macro instead.
+`sireflect(TypeName)` macro instead.
 
 Returns the existing handle if the same struct was already registered.
 
@@ -225,20 +224,20 @@ syntax fail through `sireflect_assert` in debug builds.
 recoverable failures instead. Allocation failures remain non-recoverable
 assertions.
 
+`sireflect_try_register_dynamic_struct` registers a struct from a name and
+field source, deriving its size and alignment from the registered field types.
+
 After a recoverable failure, `sireflect_error` returns the current
 library-owned error string, or `NULL` if no error is stored. Calling
 `sireflect_error` does not clear or free the message, so repeated calls return
 the same current error. The message is cleared by the next public `sireflect_*`
-call except `sireflect_error`, and is also freed by `sireflect_registry_fini`.
+call except `sireflect_error`, and is also freed by the final `sireflect_fini`.
 Callers must not free the returned pointer.
 
 ## Type lookup
 
 ```c
-sireflect_handle_t sireflect_type_by_name(
-    const sireflect_registry_t *reg,
-    const char *name
-);
+sireflect_handle_t sireflect_type_by_name(const char *name);
 ```
 
 Returns a type handle by name, or `SIREFLECT_INVALID_HANDLE` if the type is not
@@ -247,25 +246,13 @@ registered.
 ## Type queries
 
 ```c
-const sireflect_type_info_t *sireflect_type_info(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref
-);
+const sireflect_type_info_t *sireflect_type_info(sireflect_handle_t ref);
 
-const sireflect_fields_t *sireflect_type_fields(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref
-);
+const sireflect_fields_t *sireflect_type_fields(sireflect_handle_t ref);
 
-size_t sireflect_type_size(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref
-);
+size_t sireflect_type_size(sireflect_handle_t ref);
 
-const char *sireflect_type_name(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref
-);
+const char *sireflect_type_name(sireflect_handle_t ref);
 
 bool sireflect_type_is_struct(
     const sireflect_type_info_t *info
@@ -279,23 +266,15 @@ bool sireflect_type_is_pointer(
     const sireflect_type_info_t *info
 );
 
-sireflect_handle_t sireflect_type_element(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref
-);
+sireflect_handle_t sireflect_type_element(sireflect_handle_t ref);
 
-size_t sireflect_type_element_count(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref
-);
+size_t sireflect_type_element_count(sireflect_handle_t ref);
 
-sireflect_handle_t sireflect_type_pointee(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref
-);
+sireflect_handle_t sireflect_type_pointee(sireflect_handle_t ref);
 ```
 
-These functions assert if `ref` is not a valid handle for `reg`.
+These functions assert if `ref` is not a valid handle for the initialized
+context.
 `sireflect_type_is_struct`, `sireflect_type_is_array`, and
 `sireflect_type_is_pointer` assert if `info` is `NULL`. Array element queries
 assert if `ref` is not an array type. Pointer pointee queries assert if `ref` is
@@ -304,21 +283,15 @@ not a typed pointer type.
 ## Field queries
 
 ```c
-const sireflect_field_info_t *sireflect_field_info(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t type,
+const sireflect_field_info_t *sireflect_field_info(sireflect_handle_t type,
     const char *field
 );
 
-sireflect_handle_t sireflect_field_type(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t type,
+sireflect_handle_t sireflect_field_type(sireflect_handle_t type,
     const char *field
 );
 
-size_t sireflect_field_size(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t ref,
+size_t sireflect_field_size(sireflect_handle_t ref,
     const char *field
 );
 ```
@@ -330,16 +303,12 @@ exist.
 ## Field access
 
 ```c
-const void *sireflect_field_ptr(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t type,
+const void *sireflect_field_ptr(sireflect_handle_t type,
     const void *obj,
     const char *field
 );
 
-void *sireflect_field_mut_ptr(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t type,
+void *sireflect_field_mut_ptr(sireflect_handle_t type,
     void *obj,
     const char *field
 );
@@ -351,9 +320,7 @@ type represented by `type`.
 ## Field copy
 
 ```c
-int sireflect_field_copy(
-    const sireflect_registry_t *reg,
-    sireflect_handle_t type,
+int sireflect_field_copy(sireflect_handle_t type,
     void *obj,
     const char *field,
     const void *value
