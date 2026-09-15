@@ -3,6 +3,7 @@
 
 #include <signal.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -535,6 +536,86 @@ void sireflect_test_impl_repeated_array_type(void) {
     test_not_null((void *)a);
     test_not_null((void *)b);
     test_uint(a->type, b->type);
+
+    sireflect_fini();
+}
+
+void sireflect_test_impl_registry_growth_and_lookup(void) {
+    sireflect_init();
+
+    char name[32];
+    sireflect_handle_t first = SIREFLECT_INVALID_HANDLE;
+    sireflect_handle_t middle = SIREFLECT_INVALID_HANDLE;
+    sireflect_handle_t last = SIREFLECT_INVALID_HANDLE;
+
+    for (unsigned int i = 0; i < 96; i++) {
+        snprintf(name, sizeof(name), "GrowthType%u", i);
+        sireflect_handle_t type = sireflect_try_register_dynamic_struct(name, "{}");
+        test_assert(type != SIREFLECT_INVALID_HANDLE);
+        test_uint(sireflect_type_by_name(name), type);
+
+        if (i == 0) {
+            first = type;
+        } else if (i == 48) {
+            middle = type;
+        } else if (i == 95) {
+            last = type;
+        }
+    }
+
+    test_uint(sireflect_type_by_name("GrowthType0"), first);
+    test_uint(sireflect_type_by_name("GrowthType48"), middle);
+    test_uint(sireflect_type_by_name("GrowthType95"), last);
+
+    sireflect_fini();
+}
+
+void sireflect_test_impl_duplicate_registration(void) {
+    sireflect_init();
+
+    sireflect_handle_t first = sireflect_try_register_dynamic_struct("Duplicate", "{}");
+    sireflect_handle_t second = sireflect_try_register_dynamic_struct("Duplicate", "{}");
+
+    test_assert(first != SIREFLECT_INVALID_HANDLE);
+    test_uint(second, first);
+    test_uint(sireflect_type_by_name("Duplicate"), first);
+
+    sireflect_fini();
+}
+
+void sireflect_test_impl_repeated_derived_types(void) {
+    sireflect_init();
+
+    sireflect_handle_t pointer = SIREFLECT_INVALID_HANDLE;
+    sireflect_handle_t array = SIREFLECT_INVALID_HANDLE;
+    sireflect_handle_t function_pointer = SIREFLECT_INVALID_HANDLE;
+
+    for (unsigned int i = 0; i < 32; i++) {
+        char name[32];
+        snprintf(name, sizeof(name), "DerivedType%u", i);
+        sireflect_handle_t type = sireflect_try_register_dynamic_struct(
+            name,
+            "{ int *pointer; int values[32]; int (*callback)(); }"
+        );
+        test_assert(type != SIREFLECT_INVALID_HANDLE);
+
+        sireflect_handle_t current_pointer = sireflect_type_by_name("int*");
+        sireflect_handle_t current_array = sireflect_type_by_name("int[32]");
+        sireflect_handle_t current_function_pointer = sireflect_type_by_name("int(*)()");
+        test_assert(current_pointer != SIREFLECT_INVALID_HANDLE);
+        test_assert(current_array != SIREFLECT_INVALID_HANDLE);
+        test_assert(current_function_pointer != SIREFLECT_INVALID_HANDLE);
+
+        if (i == 0) {
+            pointer = current_pointer;
+            array = current_array;
+            function_pointer = current_function_pointer;
+        } else {
+            test_uint(current_pointer, pointer);
+            test_uint(current_array, array);
+            test_uint(current_function_pointer, function_pointer);
+        }
+    }
 
     sireflect_fini();
 }

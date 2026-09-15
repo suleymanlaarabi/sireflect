@@ -2,13 +2,15 @@
 #define SIREFLECT_REGISTRY_H
 
 #include <sireflect.h>
+#ifndef SICORE_H
+#include <sicore.h>
+#endif
 
 typedef struct sireflect_registry_t sireflect_registry_t;
 
 struct sireflect_registry_t {
-    sireflect_type_info_t *types;
-    size_t type_count;
-    size_t type_cap;
+    sicore_vec_t types;
+    sicore_map_t types_by_name;
 };
 
 sireflect_registry_t *sireflect_registry_current(void);
@@ -35,6 +37,8 @@ sireflect_registry_get_or_add_pointer_type(sireflect_handle_t pointee_type);
 sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
     sireflect_handle_t return_type
 );
+
+sireflect_handle_t sireflect_registry_handle_by_name(const char *name);
 
 sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle);
 

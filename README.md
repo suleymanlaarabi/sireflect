@@ -7,7 +7,7 @@
 type handles, field metadata, field lookup, and raw field access without a
 compiler plugin or an external code generator.
 
-- Compact C API with zero runtime dependencies.
+- Compact C API with a private `sicore` dependency for registry containers.
 - Struct reflection through `SIREFLECT_STRUCT` and a process-wide reflection context.
 - Built-in metadata for primitive aliases such as `u8`, `i32`, `f32`, `bool`,
   `ptr`, native C numeric types, and common multi-token type names such as

@@ -35,6 +35,11 @@ void arrays_pointer_array_field(void);
 void arrays_matrix_array_field(void);
 void arrays_pointer_matrix_field(void);
 
+// Testsuite 'registry'
+void registry_growth_and_lookup(void);
+void registry_duplicate_registration(void);
+void registry_repeated_derived_types(void);
+
 // Testsuite 'declarators'
 void declarators_multiple_primitive_declarators(void);
 void declarators_multiple_struct_declarators(void);
@@ -85,6 +90,11 @@ void parser_errors_nested_empty_array_diagnostic(void);
 void parser_errors_missing_declarator_diagnostic(void);
 void parser_errors_post_pointer_qualifier_diagnostic(void);
 void parser_errors_unsupported_type_specifier_diagnostic(void);
+
+// Testsuite 'lifecycle'
+void lifecycle_nested_init_fini(void);
+void lifecycle_fini_without_init_asserts(void);
+void lifecycle_try_register_before_init(void);
 
 bake_test_case types_testcases[] = {
     {
@@ -171,6 +181,21 @@ bake_test_case arrays_testcases[] = {
     {
         "pointer_matrix_field",
         arrays_pointer_matrix_field
+    }
+};
+
+bake_test_case registry_testcases[] = {
+    {
+        "growth_and_lookup",
+        registry_growth_and_lookup
+    },
+    {
+        "duplicate_registration",
+        registry_duplicate_registration
+    },
+    {
+        "repeated_derived_types",
+        registry_repeated_derived_types
     }
 };
 
@@ -353,6 +378,21 @@ bake_test_case parser_errors_testcases[] = {
     }
 };
 
+bake_test_case lifecycle_testcases[] = {
+    {
+        "nested_init_fini",
+        lifecycle_nested_init_fini
+    },
+    {
+        "fini_without_init_asserts",
+        lifecycle_fini_without_init_asserts
+    },
+    {
+        "try_register_before_init",
+        lifecycle_try_register_before_init
+    }
+};
+
 
 static bake_test_suite suites[] = {
     {
@@ -382,6 +422,13 @@ static bake_test_suite suites[] = {
         NULL,
         6,
         arrays_testcases
+    },
+    {
+        "registry",
+        NULL,
+        NULL,
+        3,
+        registry_testcases
     },
     {
         "declarators",
@@ -417,9 +464,16 @@ static bake_test_suite suites[] = {
         NULL,
         18,
         parser_errors_testcases
+    },
+    {
+        "lifecycle",
+        NULL,
+        NULL,
+        3,
+        lifecycle_testcases
     }
 };
 
 int main(int argc, char *argv[]) {
-    return bake_test_run("sireflect.test", argc, argv, suites, 9);
+    return bake_test_run("sireflect.test", argc, argv, suites, 11);
 }

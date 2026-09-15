@@ -52,6 +52,14 @@
         ]
       },
       {
+        "id": "registry",
+        "testcases": [
+          "growth_and_lookup",
+          "duplicate_registration",
+          "repeated_derived_types"
+        ]
+      },
+      {
         "id": "declarators",
         "testcases": [
           "multiple_primitive_declarators",

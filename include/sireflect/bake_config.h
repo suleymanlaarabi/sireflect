@@ -20,6 +20,11 @@
 /* Headers of public dependencies */
 /* No dependencies */
 
+/* Headers of private dependencies */
+#ifdef sireflect_EXPORTS
+#include <sicore.h>
+#endif
+
 /* Convenience macro for exporting symbols */
 #ifndef sireflect_STATIC
 #if defined(sireflect_EXPORTS) && (defined(_MSC_VER) || defined(__MINGW32__))

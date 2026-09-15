@@ -6,11 +6,18 @@
         "description": "Lightweight runtime reflection, serialization and deserialization library for modern C23.",
         "language": "c",
         "clangd": true,
+        "use_private": ["sicore"],
         "amalgamate": [
           {
-            "path": "distr"
+            "path": "distr",
+            "dependencies": true
           }
         ]
+    },
+    "bundle": {
+      "repositories": {
+        "sicore": "https://github.com/suleymanlaarabi/sicore"
+      }
     },
     "lang.c": {
       "c-standard": "c23",
