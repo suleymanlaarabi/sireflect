@@ -6,7 +6,7 @@
         "description": "Lightweight runtime reflection, serialization and deserialization library for modern C23.",
         "language": "c",
         "clangd": true,
-        "use_private": ["sicore"],
+        "use": ["sicore"],
         "amalgamate": [
           {
             "path": "distr",

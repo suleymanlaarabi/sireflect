@@ -24,10 +24,6 @@
 #define SIREFLECT_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
-/* No dependencies */
-
-/* Headers of private dependencies */
-#ifdef sireflect_EXPORTS
 // Comment out this line when using as DLL
 #define sicore_STATIC
 #ifndef SICORE_H
@@ -234,8 +230,6 @@ bool sicore_map_unset(sicore_map_t *map, const char *key);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 
 #endif

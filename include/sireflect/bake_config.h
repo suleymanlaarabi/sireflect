@@ -18,12 +18,7 @@
 #define SIREFLECT_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
-/* No dependencies */
-
-/* Headers of private dependencies */
-#ifdef sireflect_EXPORTS
 #include <sicore.h>
-#endif
 
 /* Convenience macro for exporting symbols */
 #ifndef sireflect_STATIC
