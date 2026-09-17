@@ -32,6 +32,14 @@
         ]
       },
       {
+        "id": "enums",
+        "testcases": [
+          "values_and_queries",
+          "struct_fields",
+          "duplicate_enum_registration"
+        ]
+      },
+      {
         "id": "pointers",
         "testcases": [
           "pointer_field",

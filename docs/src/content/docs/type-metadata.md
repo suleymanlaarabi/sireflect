@@ -37,8 +37,8 @@ if (f32_type == SIREFLECT_INVALID_HANDLE) {
 }
 ```
 
-Built-in types are registered by `sireflect_init`. Struct types are
-registered by calling `sireflect(TypeName)` or `sireflect_register_struct`.
+Built-in types are registered by `sireflect_init`. Struct and enum types are
+registered by calling `sireflect(TypeName)`.
 
 ## Read type information
 
@@ -53,10 +53,11 @@ printf("%s size=%zu align=%zu\n", info->name, info->size, info->align);
 | Member | Meaning |
 | --- | --- |
 | `name` | Reflected type name. |
-| `kind` | Built-in kind, `sireflect_kind_struct`, `sireflect_kind_array`, `sireflect_kind_pointer`, or `sireflect_kind_function_pointer`. |
+| `kind` | Built-in kind, or `sireflect_kind_struct`, `sireflect_kind_enum`, `sireflect_kind_array`, `sireflect_kind_pointer`, or `sireflect_kind_function_pointer`. |
 | `size` | Size in bytes. |
 | `align` | Alignment in bytes. |
 | `fields` | Field list for struct types, empty for non-struct types. |
+| `enum_values` | Enumerator list for enum types, empty for non-enum types. |
 | `element_type` | Element type handle for arrays, pointee type handle for typed pointers, or return type handle for function pointers; otherwise `SIREFLECT_INVALID_HANDLE`. |
 | `element_count` | Element count for array types, otherwise `0`. Pointer types also use `0`. |
 
@@ -67,6 +68,7 @@ const char *name = sireflect_type_name(type);
 size_t size = sireflect_type_size(type);
 const sireflect_fields_t *fields = sireflect_type_fields(type);
 bool is_struct = sireflect_type_is_struct(info);
+bool is_enum = sireflect_type_is_enum(info);
 bool is_array = sireflect_type_is_array(info);
 bool is_pointer = sireflect_type_is_pointer(info);
 ```
@@ -103,6 +105,7 @@ sireflect_kind_unsigned_long
 sireflect_kind_long_long
 sireflect_kind_unsigned_long_long
 sireflect_kind_function_pointer
+sireflect_kind_enum
 ```
 
 For custom structs, `kind` is always `sireflect_kind_struct`.
@@ -110,6 +113,8 @@ For fixed-size arrays, `kind` is `sireflect_kind_array`.
 For typed pointers, `kind` is `sireflect_kind_pointer`.
 For function-pointer fields such as `Position (*ui)()`, `kind` is
 `sireflect_kind_function_pointer`; `element_type` stores the return type.
+For enums, `kind` is `sireflect_kind_enum`; `size` and `align` are those of
+the C enum type on the current implementation.
 Multi-token built-in type names keep their own native C kind values and native
 `sizeof` / `_Alignof` metadata.
 
@@ -181,10 +186,33 @@ if (sireflect_is_numeric(info->kind)) {
 }
 ```
 
+## Enum values
+
+Declare enums with `SIREFLECT_ENUM` and register them through the same
+`sireflect(TypeName)` macro used for structs:
+
+```c
+SIREFLECT_ENUM(Color, {
+    COLOR_RED,
+    COLOR_GREEN = 5,
+    COLOR_BLUE,
+    COLOR_NEGATIVE = -5,
+});
+
+sireflect_handle_t color = sireflect(Color);
+const sireflect_enum_values_t *values = sireflect_type_enum_values(color);
+```
+
+The parser supports implicit values and explicit decimal, octal, or hexadecimal
+integer literals (including a leading minus). It deliberately does not yet
+evaluate C expressions such as `1 << 0` or references to other enumerators.
+Use `sireflect_enum_value_by_name` or `sireflect_enum_value_by_value` for a
+lookup; both return `NULL` when no value matches.
+
 ## Metadata ownership
 
-Sireflect owns all type names, field names, and field arrays. Returned pointers
-are borrowed views.
+Sireflect owns all type names, field names, enum-value names, and metadata
+arrays. Returned pointers are borrowed views.
 
 Do not free metadata returned by Sireflect. Do not store metadata pointers past
 `sireflect_fini`.

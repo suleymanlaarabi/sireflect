@@ -22,7 +22,9 @@ sireflect_handle_t sireflect_registry_add_type(
     size_t size,
     size_t align,
     sireflect_field_info_t *fields,
-    size_t field_count
+    size_t field_count,
+    sireflect_enum_value_t *enum_values,
+    size_t enum_value_count
 );
 
 sireflect_handle_t sireflect_registry_get_or_add_array_type(

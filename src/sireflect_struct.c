@@ -53,7 +53,9 @@ sireflect_try_register_struct(const sireflect_struct_desc_t *desc) {
         desc->size,
         desc->align,
         parsed_fields,
-        field_count
+        field_count,
+        NULL,
+        0
     );
 }
 
@@ -112,7 +114,9 @@ sireflect_register_struct(const sireflect_struct_desc_t *desc) {
                 desc->size,
                 desc->align,
                 parsed_fields,
-                field_count
+                field_count,
+                NULL,
+                0
             );
         }
     }
@@ -170,6 +174,8 @@ sireflect_handle_t sireflect_try_register_dynamic_struct(
         size,
         align,
         parsed_fields,
-        field_count
+        field_count,
+        NULL,
+        0
     );
 }

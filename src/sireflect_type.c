@@ -1,6 +1,8 @@
 #include "sireflect_error.h"
 #include "sireflect_registry.h"
 
+#include <string.h>
+
 const char *sireflect_kind_name(sireflect_kind_t kind) {
     sireflect_error_clear();
 
@@ -59,6 +61,8 @@ const char *sireflect_kind_name(sireflect_kind_t kind) {
         return "unsigned long long";
     case sireflect_kind_function_pointer:
         return "function pointer";
+    case sireflect_kind_enum:
+        return "enum";
     }
 
     return "unknown";
@@ -96,6 +100,7 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
     case sireflect_kind_struct:
     case sireflect_kind_array:
     case sireflect_kind_function_pointer:
+    case sireflect_kind_enum:
         return false;
     }
 
@@ -134,6 +139,49 @@ bool sireflect_type_is_struct(const sireflect_type_info_t *info) {
 
     sireflect_assert(info != NULL, "type metadata must not be NULL");
     return info->kind == sireflect_kind_struct;
+}
+
+bool sireflect_type_is_enum(const sireflect_type_info_t *info) {
+    sireflect_error_clear();
+
+    sireflect_assert(info != NULL, "type metadata must not be NULL");
+    return info->kind == sireflect_kind_enum;
+}
+
+const sireflect_enum_values_t *
+sireflect_type_enum_values(sireflect_handle_t type) {
+    sireflect_error_clear();
+
+    const sireflect_type_info_t *info = sireflect_type_info(type);
+    sireflect_assert(info->kind == sireflect_kind_enum, "type must be an enum");
+    return &info->enum_values;
+}
+
+const sireflect_enum_value_t *
+sireflect_enum_value_by_name(sireflect_handle_t type, const char *name) {
+    sireflect_error_clear();
+    sireflect_assert(name != NULL, "enum value name must not be NULL");
+
+    const sireflect_enum_values_t *values = sireflect_type_enum_values(type);
+    for (size_t i = 0; i < values->value_count; i++) {
+        if (strcmp(values->values[i].name, name) == 0) {
+            return &values->values[i];
+        }
+    }
+    return NULL;
+}
+
+const sireflect_enum_value_t *
+sireflect_enum_value_by_value(sireflect_handle_t type, int64_t value) {
+    sireflect_error_clear();
+
+    const sireflect_enum_values_t *values = sireflect_type_enum_values(type);
+    for (size_t i = 0; i < values->value_count; i++) {
+        if (values->values[i].value == value) {
+            return &values->values[i];
+        }
+    }
+    return NULL;
 }
 
 bool sireflect_type_is_array(const sireflect_type_info_t *info) {

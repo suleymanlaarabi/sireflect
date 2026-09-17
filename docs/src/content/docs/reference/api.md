@@ -86,7 +86,8 @@ typedef enum {
     sireflect_kind_unsigned_long,
     sireflect_kind_long_long,
     sireflect_kind_unsigned_long_long,
-    sireflect_kind_function_pointer
+    sireflect_kind_function_pointer,
+    sireflect_kind_enum
 } sireflect_kind_t;
 ```
 
@@ -101,7 +102,7 @@ invalid kind value.
 `sireflect_is_numeric` returns `true` for integer and floating-point kinds,
 including native C numeric kinds such as `char`, `short`, `int`, `long`,
 `unsigned int`, and `long long`. It returns `false` for `bool`, `ptr`, typed
-pointers, function pointers, structs, arrays, and invalid kind values.
+pointers, function pointers, structs, enums, arrays, and invalid kind values.
 
 ## Field qualifiers
 
@@ -140,6 +141,22 @@ typedef struct {
 
 This is a borrowed view over a type's fields.
 
+## Enum metadata
+
+```c
+typedef struct {
+    const char *name;
+    int64_t value;
+} sireflect_enum_value_t;
+
+typedef struct {
+    sireflect_enum_value_t *values;
+    size_t value_count;
+} sireflect_enum_values_t;
+```
+
+This is a borrowed view over an enum's enumerators.
+
 ## Type metadata
 
 ```c
@@ -149,6 +166,7 @@ typedef struct {
     size_t size;
     size_t align;
     sireflect_fields_t fields;
+    sireflect_enum_values_t enum_values;
     sireflect_handle_t element_type;
     size_t element_count;
 } sireflect_type_info_t;
@@ -156,6 +174,9 @@ typedef struct {
 
 Struct types have `kind == sireflect_kind_struct`. Non-struct types have an
 empty field list.
+
+Enum types have `kind == sireflect_kind_enum`; `enum_values` contains their
+enumerators and is empty for other types.
 
 Array types have `kind == sireflect_kind_array`, `element_type` set to the
 element type handle, and `element_count` set to the fixed array length. Typed
@@ -169,11 +190,13 @@ type handle, and `element_count == 0`. Other types use
 
 ```c
 #define SIREFLECT_STRUCT(name, ...)
+#define SIREFLECT_ENUM(name, ...)
 #define sireflect(name)
 ```
 
 `SIREFLECT_STRUCT` declares a typedef struct and captures its field list as a
-string. `sireflect(name)` registers that struct in the global context.
+string. `SIREFLECT_ENUM` does the same for an enum's enumerator list.
+`sireflect(name)` selects the appropriate registration function automatically.
 
 Example:
 
@@ -184,6 +207,11 @@ SIREFLECT_STRUCT(Position, {
 });
 
 sireflect_handle_t type = sireflect(Position);
+```
+
+```c
+SIREFLECT_ENUM(Color, { COLOR_RED, COLOR_GREEN = 5, COLOR_BLUE });
+sireflect_handle_t type = sireflect(Color);
 ```
 
 ## Sireflect lifecycle
@@ -197,7 +225,7 @@ The calls are reference-counted. The first `sireflect_init` initializes the
 context and registers built-in primitive types. Metadata is destroyed only by
 the matching final `sireflect_fini`.
 
-## Register structs
+## Register structs and enums
 
 ```c
 const char *sireflect_error(void);
@@ -205,6 +233,10 @@ const char *sireflect_error(void);
 sireflect_handle_t sireflect_register_struct(const sireflect_struct_desc_t *desc);
 
 sireflect_handle_t sireflect_try_register_struct(const sireflect_struct_desc_t *desc);
+
+sireflect_handle_t sireflect_register_enum(const sireflect_enum_desc_t *desc);
+
+sireflect_handle_t sireflect_try_register_enum(const sireflect_enum_desc_t *desc);
 
 sireflect_handle_t sireflect_try_register_dynamic_struct(
     const char *name,
@@ -226,6 +258,10 @@ assertions.
 
 `sireflect_try_register_dynamic_struct` registers a struct from a name and
 field source, deriving its size and alignment from the registered field types.
+
+Enum descriptors contain a name, textual enumerator list, size, and alignment.
+Their syntax currently supports implicit values and explicit integer literals
+(including negative, octal, and hexadecimal literals), but not C expressions.
 
 After a recoverable failure, `sireflect_error` returns the current
 library-owned error string, or `NULL` if no error is stored. Calling
@@ -258,6 +294,22 @@ bool sireflect_type_is_struct(
     const sireflect_type_info_t *info
 );
 
+bool sireflect_type_is_enum(
+    const sireflect_type_info_t *info
+);
+
+const sireflect_enum_values_t *sireflect_type_enum_values(sireflect_handle_t type);
+
+const sireflect_enum_value_t *sireflect_enum_value_by_name(
+    sireflect_handle_t type,
+    const char *name
+);
+
+const sireflect_enum_value_t *sireflect_enum_value_by_value(
+    sireflect_handle_t type,
+    int64_t value
+);
+
 bool sireflect_type_is_array(
     const sireflect_type_info_t *info
 );
@@ -275,10 +327,13 @@ sireflect_handle_t sireflect_type_pointee(sireflect_handle_t ref);
 
 These functions assert if `ref` is not a valid handle for the initialized
 context.
-`sireflect_type_is_struct`, `sireflect_type_is_array`, and
+`sireflect_type_is_struct`, `sireflect_type_is_enum`, `sireflect_type_is_array`, and
 `sireflect_type_is_pointer` assert if `info` is `NULL`. Array element queries
 assert if `ref` is not an array type. Pointer pointee queries assert if `ref` is
 not a typed pointer type.
+
+Enum queries assert when `type` is not an enum. Value lookups return `NULL`
+when no enumerator matches.
 
 ## Field queries
 

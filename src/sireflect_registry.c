@@ -74,7 +74,9 @@ sireflect_handle_t sireflect_registry_add_type(
     size_t size,
     size_t align,
     sireflect_field_info_t *fields,
-    size_t field_count
+    size_t field_count,
+    sireflect_enum_value_t *enum_values,
+    size_t enum_value_count
 ) {
     sireflect_registry_t *reg = sireflect_registry_current();
 
@@ -91,6 +93,11 @@ sireflect_handle_t sireflect_registry_add_type(
             {
                 .fields = fields,
                 .field_count = field_count,
+            },
+        .enum_values =
+            {
+                .values = enum_values,
+                .value_count = enum_value_count,
             },
         .element_type = SIREFLECT_INVALID_HANDLE,
         .element_count = 0,
@@ -129,6 +136,8 @@ sireflect_registry_get_or_add_pointer_type(sireflect_handle_t pointee_type) {
         sizeof(ptr),
         _Alignof(ptr),
         NULL,
+        0,
+        NULL,
         0
     );
     free(name);
@@ -166,6 +175,8 @@ sireflect_handle_t sireflect_registry_get_or_add_function_pointer_type(
         sizeof(ptr),
         _Alignof(ptr),
         NULL,
+        0,
+        NULL,
         0
     );
     free(name);
@@ -202,6 +213,8 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
         element->size * element_count,
         element->align,
         NULL,
+        0,
+        NULL,
         0
     );
     free(name);
@@ -214,10 +227,10 @@ sireflect_handle_t sireflect_registry_get_or_add_array_type(
 }
 
 #define add_type(name, kind) \
-    sireflect_registry_add_type(#name, kind, sizeof(name), _Alignof(name), NULL, 0)
+    sireflect_registry_add_type(#name, kind, sizeof(name), _Alignof(name), NULL, 0, NULL, 0)
 
 #define add_named_type(c_type, reflected_name, kind) \
-    sireflect_registry_add_type(reflected_name, kind, sizeof(c_type), _Alignof(c_type), NULL, 0)
+    sireflect_registry_add_type(reflected_name, kind, sizeof(c_type), _Alignof(c_type), NULL, 0, NULL, 0)
 
 static inline void sireflect_register_builtin_types(void) {
     add_type(u8, sireflect_kind_u8);
@@ -286,6 +299,11 @@ static void sireflect_registry_clear(void) {
         }
 
         free(type->fields.fields);
+
+        for (size_t e = 0; e < type->enum_values.value_count; e++) {
+            free((char *)type->enum_values.values[e].name);
+        }
+        free(type->enum_values.values);
     }
 
     sicore_map_fini(&reg->types_by_name);

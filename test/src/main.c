@@ -21,6 +21,11 @@ void structs_primitive_fields(void);
 void structs_mixed_alignment(void);
 void structs_field_copy(void);
 
+// Testsuite 'enums'
+void enums_values_and_queries(void);
+void enums_struct_fields(void);
+void enums_duplicate_enum_registration(void);
+
 // Testsuite 'pointers'
 void pointers_pointer_field(void);
 void pointers_pointer_compat_field(void);
@@ -135,6 +140,21 @@ bake_test_case structs_testcases[] = {
     {
         "field_copy",
         structs_field_copy
+    }
+};
+
+bake_test_case enums_testcases[] = {
+    {
+        "values_and_queries",
+        enums_values_and_queries
+    },
+    {
+        "struct_fields",
+        enums_struct_fields
+    },
+    {
+        "duplicate_enum_registration",
+        enums_duplicate_enum_registration
     }
 };
 
@@ -410,6 +430,13 @@ static bake_test_suite suites[] = {
         structs_testcases
     },
     {
+        "enums",
+        NULL,
+        NULL,
+        3,
+        enums_testcases
+    },
+    {
         "pointers",
         NULL,
         NULL,
@@ -475,5 +502,5 @@ static bake_test_suite suites[] = {
 };
 
 int main(int argc, char *argv[]) {
-    return bake_test_run("sireflect.test", argc, argv, suites, 11);
+    return bake_test_run("sireflect.test", argc, argv, suites, 12);
 }
