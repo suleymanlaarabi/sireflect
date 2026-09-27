@@ -134,6 +134,21 @@
         ]
       },
       {
+        "id": "runtime",
+        "testcases": [
+          "type_walk_shapes",
+          "type_walk_cycles_and_dedup",
+          "type_walk_stop_and_errors",
+          "value_walk_mutable",
+          "value_walk_const_and_pointers",
+          "categories_and_arrays",
+          "metadata_ownership_and_errors",
+          "stable_handles_and_pointers",
+          "recursive_registration_rollback",
+          "depth_limit"
+        ]
+      },
+      {
         "id": "lifecycle",
         "testcases": [
           "nested_init_fini",

@@ -775,6 +775,12 @@ static inline void sireflect_parse_declarator(
         return;
     }
 
+    if (!is_pointer && !is_function_pointer &&
+        strcmp(sireflect_registry_const_type_at(field_type)->name, parser->struct_name) == 0) {
+        sireflect_parser_fail_at(parser, name_token, "recursive field must be a pointer");
+        return;
+    }
+
     if (is_function_pointer) {
         field_type = sireflect_registry_get_or_add_function_pointer_type(field_type);
     } else if (is_pointer) {

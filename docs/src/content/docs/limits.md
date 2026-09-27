@@ -18,7 +18,7 @@ Sireflect does not support:
 | Bitfields | Bit offsets and widths are not represented. |
 | Packed structs | The layout validator assumes normal C alignment. |
 | Attributes | Custom compiler layout attributes are outside the parser subset. |
-| Function pointers | Function declarator syntax is outside the parser subset. |
+| Function pointer parameters | Empty parameter lists are supported; parameter types and variadic signatures are not reflected yet. |
 
 ## Assertion policy
 
@@ -38,8 +38,7 @@ and should be handled manually.
 
 ## Self references
 
-In the current implementation, a type must already exist in the global context before
-it can be used as a field type. This also affects pointer declarations:
+Structs may refer to themselves through typed pointer fields:
 
 ```c
 SIREFLECT_STRUCT(Node, {
@@ -47,9 +46,10 @@ SIREFLECT_STRUCT(Node, {
 });
 ```
 
-This form requires `Node` to be known before parsing the fields, which is not
-supported yet. A future version can support this by inserting a placeholder type
-before parsing.
+`SIREFLECT_STRUCT` declares the named C tag and typedef before the body, and
+registration reserves the type handle while its fields are parsed. A direct
+by-value self field is rejected. Other distinct types still need to be
+registered before use.
 
 Use `ptr` when you only need to reflect the field as a raw pointer:
 

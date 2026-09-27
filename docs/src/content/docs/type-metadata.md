@@ -216,3 +216,10 @@ arrays. Returned pointers are borrowed views.
 
 Do not free metadata returned by Sireflect. Do not store metadata pointers past
 `sireflect_fini`.
+
+Type and field metadata pointers remain stable while the context is initialized,
+including when more types are registered. New initialization after the final
+`sireflect_fini` assigns fresh handles; old handles stay invalid.
+
+See [Runtime Reflection](/sireflect/runtime-reflection/) for recursive walks,
+classification, array access, and semantic metadata.

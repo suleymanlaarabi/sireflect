@@ -8,6 +8,7 @@
 
 static sireflect_registry_t sireflect_global_registry;
 static size_t sireflect_global_references;
+static sireflect_handle_t sireflect_next_handle = 1;
 
 bool sireflect_registry_is_initialized(void) {
     return sireflect_global_references != 0;
@@ -60,12 +61,12 @@ sireflect_format_array_type_name(const sireflect_type_info_t *element, size_t el
 }
 
 static sireflect_handle_t sireflect_handle_from_index(size_t index) {
-    return (sireflect_handle_t)(index + 1);
+    return sireflect_global_registry.first_handle + (sireflect_handle_t)index;
 }
 
 static size_t sireflect_index_from_handle(sireflect_handle_t handle) {
-    sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "type handle must be valid");
-    return (size_t)(handle - 1);
+    sireflect_assert(handle >= sireflect_global_registry.first_handle, "type handle must be valid");
+    return (size_t)(handle - sireflect_global_registry.first_handle);
 }
 
 sireflect_handle_t sireflect_registry_add_type(
@@ -84,7 +85,9 @@ sireflect_handle_t sireflect_registry_add_type(
     sireflect_assert(size != 0 || kind == sireflect_kind_struct, "non-struct type size must not be zero");
     sireflect_assert(align != 0, "type alignment must not be zero");
 
-    const sireflect_type_info_t type = {
+    sireflect_type_entry_t *entry = calloc(1, sizeof(*entry));
+    sireflect_assert(entry != NULL, "failed to allocate type entry");
+    entry->info = (sireflect_type_info_t){
         .name = sireflect_dup_cstr(name),
         .kind = kind,
         .size = size,
@@ -102,10 +105,14 @@ sireflect_handle_t sireflect_registry_add_type(
         .element_type = SIREFLECT_INVALID_HANDLE,
         .element_count = 0,
     };
-    sicore_vec_push(&reg->types, &type, sizeof(type));
+    if (field_count != 0) {
+        entry->field_meta = calloc(field_count, sizeof(*entry->field_meta));
+        sireflect_assert(entry->field_meta != NULL, "failed to allocate field metadata stores");
+    }
+    sicore_vec_push(&reg->types, &entry, sizeof(entry));
 
     const uint32_t index = reg->types.size - 1;
-    sicore_map_set(&reg->types_by_name, type.name, index);
+    sicore_map_set(&reg->types_by_name, entry->info.name, index);
 
     return sireflect_handle_from_index((size_t)index);
 }
@@ -276,7 +283,8 @@ void sireflect_init(void) {
 
     if (sireflect_global_references == 0) {
         sireflect_global_references = 1;
-        sicore_vec_init(&sireflect_global_registry.types, sizeof(sireflect_type_info_t));
+        sireflect_global_registry.first_handle = sireflect_next_handle;
+        sicore_vec_init(&sireflect_global_registry.types, sizeof(sireflect_type_entry_t *));
         sicore_map_init(&sireflect_global_registry.types_by_name);
         sireflect_register_builtin_types();
         return;
@@ -286,25 +294,77 @@ void sireflect_init(void) {
     sireflect_global_references++;
 }
 
+static void sireflect_meta_store_clear(sireflect_meta_store_t *store) {
+    for (size_t i = 0; i < store->view.count; i++) {
+        sireflect_meta_t *meta = (sireflect_meta_t *)store->view.items[i];
+        free((char *)meta->key);
+        if (meta->kind == SIREFLECT_META_STRING) free((char *)meta->value.string);
+        free(meta);
+    }
+    free((void *)store->view.items);
+}
+
+static void sireflect_entry_clear(sireflect_type_entry_t *entry) {
+    sireflect_type_info_t *type = &entry->info;
+
+    free((char *)type->name);
+
+    for (size_t f = 0; f < type->fields.field_count; f++) {
+        free((char *)type->fields.fields[f].name);
+    }
+
+    free(type->fields.fields);
+
+    for (size_t e = 0; e < type->enum_values.value_count; e++) {
+        free((char *)type->enum_values.values[e].name);
+    }
+    free(type->enum_values.values);
+    sireflect_meta_store_clear(&entry->type_meta);
+    for (size_t f = 0; f < type->fields.field_count; f++) {
+        sireflect_meta_store_clear(&entry->field_meta[f]);
+    }
+    free(entry->field_meta);
+    free(entry);
+}
+
+void sireflect_registry_rollback(size_t count) {
+    sireflect_registry_t *reg = &sireflect_global_registry;
+    while (reg->types.size > count) {
+        const uint32_t index = reg->types.size - 1;
+        sireflect_type_entry_t *entry = *sicore_vec_get_mut(&reg->types, index, sireflect_type_entry_t *);
+        sireflect_entry_clear(entry);
+        reg->types.size--;
+    }
+    sicore_map_fini(&reg->types_by_name);
+    sicore_map_init(&reg->types_by_name);
+    for (uint32_t i = 0; i < reg->types.size; i++) {
+        sireflect_type_entry_t *entry = *sicore_vec_get_mut(&reg->types, i, sireflect_type_entry_t *);
+        sicore_map_set(&reg->types_by_name, entry->info.name, i);
+    }
+}
+
+bool sireflect_registry_finish_struct(sireflect_handle_t handle,
+    sireflect_field_info_t *fields, size_t field_count, size_t size, size_t align) {
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(handle);
+    sireflect_meta_store_t *stores = field_count ? calloc(field_count, sizeof(*stores)) : NULL;
+    if (field_count && stores == NULL) {
+        return false;
+    }
+    entry->info.fields = (sireflect_fields_t){ .fields = fields, .field_count = field_count };
+    entry->info.size = size;
+    entry->info.align = align;
+    entry->field_meta = stores;
+    return true;
+}
+
 static void sireflect_registry_clear(void) {
     sireflect_registry_t *reg = &sireflect_global_registry;
-
     for (uint32_t i = 0; i < reg->types.size; i++) {
-        sireflect_type_info_t *type = sicore_vec_get_mut(&reg->types, i, sireflect_type_info_t);
-
-        free((char *)type->name);
-
-        for (size_t f = 0; f < type->fields.field_count; f++) {
-            free((char *)type->fields.fields[f].name);
-        }
-
-        free(type->fields.fields);
-
-        for (size_t e = 0; e < type->enum_values.value_count; e++) {
-            free((char *)type->enum_values.values[e].name);
-        }
-        free(type->enum_values.values);
+        sireflect_type_entry_t *entry = *sicore_vec_get_mut(&reg->types, i, sireflect_type_entry_t *);
+        sireflect_entry_clear(entry);
     }
+
+    sireflect_next_handle = reg->first_handle + reg->types.size;
 
     sicore_map_fini(&reg->types_by_name);
     sicore_vec_fini(&reg->types);
@@ -351,7 +411,18 @@ const sireflect_type_info_t *sireflect_registry_const_type_at(sireflect_handle_t
     const size_t index = sireflect_index_from_handle(handle);
     sireflect_assert(index < reg->types.size, "type handle is out of range");
 
-    return sicore_vec_get(&reg->types, index, sireflect_type_info_t);
+    const sireflect_type_entry_t *entry = *sicore_vec_get(&reg->types, index, sireflect_type_entry_t *);
+    return &entry->info;
+}
+
+sireflect_type_entry_t *sireflect_registry_entry_at(sireflect_handle_t handle) {
+    if (!sireflect_registry_is_initialized() ||
+        handle < sireflect_global_registry.first_handle ||
+        handle - sireflect_global_registry.first_handle >= sireflect_global_registry.types.size) {
+        return NULL;
+    }
+    return *sicore_vec_get_mut(&sireflect_global_registry.types,
+        (uint32_t)(handle - sireflect_global_registry.first_handle), sireflect_type_entry_t *);
 }
 
 sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle) {

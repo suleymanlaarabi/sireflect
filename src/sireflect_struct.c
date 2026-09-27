@@ -3,6 +3,37 @@
 #include "sireflect_parser.h"
 #include "sireflect_registry.h"
 
+#include <stdlib.h>
+
+static sireflect_handle_t sireflect_register_new_struct(
+    const char *name, const char *source, size_t size, size_t align,
+    bool validate_layout, bool fail_fast
+) {
+    sireflect_registry_t *reg = sireflect_registry_current();
+    const size_t checkpoint = reg->types.size;
+    sireflect_handle_t handle = sireflect_registry_add_type(
+        name, sireflect_kind_struct, size, align, NULL, 0, NULL, 0
+    );
+    sireflect_field_info_t *fields = NULL;
+    size_t field_count = 0;
+    size_t parsed_size = 0;
+    size_t parsed_align = 0;
+    if (!sireflect_parse_struct_fields(name, source, &fields, &field_count,
+        size, align, &parsed_size, &parsed_align, validate_layout, fail_fast)) {
+        sireflect_registry_rollback(checkpoint);
+        return SIREFLECT_INVALID_HANDLE;
+    }
+    if (!sireflect_registry_finish_struct(handle, fields, field_count,
+        validate_layout ? size : parsed_size, validate_layout ? align : parsed_align)) {
+        for (size_t i = 0; i < field_count; i++) free((char *)fields[i].name);
+        free(fields);
+        sireflect_registry_rollback(checkpoint);
+        sireflect_error_set("failed to allocate field metadata stores");
+        return SIREFLECT_INVALID_HANDLE;
+    }
+    return handle;
+}
+
 sireflect_handle_t
 sireflect_try_register_struct(const sireflect_struct_desc_t *desc) {
     sireflect_error_clear();
@@ -27,36 +58,8 @@ sireflect_try_register_struct(const sireflect_struct_desc_t *desc) {
         return existing;
     }
 
-    sireflect_field_info_t *parsed_fields = NULL;
-    size_t field_count = 0;
-    size_t parsed_size = 0;
-    size_t parsed_align = 0;
-
-    if (!sireflect_parse_struct_fields(
-        desc->name,
-        desc->fields,
-        &parsed_fields,
-        &field_count,
-        desc->size,
-        desc->align,
-        &parsed_size,
-        &parsed_align,
-        true,
-        false
-    )) {
-        return SIREFLECT_INVALID_HANDLE;
-    }
-
-    return sireflect_registry_add_type(
-        desc->name,
-        sireflect_kind_struct,
-        desc->size,
-        desc->align,
-        parsed_fields,
-        field_count,
-        NULL,
-        0
-    );
+    return sireflect_register_new_struct(desc->name, desc->fields,
+        desc->size, desc->align, true, false);
 }
 
 sireflect_handle_t
@@ -91,34 +94,8 @@ sireflect_register_struct(const sireflect_struct_desc_t *desc) {
             return existing;
         }
 
-        sireflect_field_info_t *parsed_fields = NULL;
-        size_t field_count = 0;
-        size_t parsed_size = 0;
-        size_t parsed_align = 0;
-
-        if (sireflect_parse_struct_fields(
-                desc->name,
-                desc->fields,
-                &parsed_fields,
-                &field_count,
-                desc->size,
-                desc->align,
-                &parsed_size,
-                &parsed_align,
-                true,
-                true
-            )) {
-            handle = sireflect_registry_add_type(
-                desc->name,
-                sireflect_kind_struct,
-                desc->size,
-                desc->align,
-                parsed_fields,
-                field_count,
-                NULL,
-                0
-            );
-        }
+        handle = sireflect_register_new_struct(desc->name, desc->fields,
+            desc->size, desc->align, true, true);
     }
 
     sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "failed to register struct");
@@ -148,34 +125,5 @@ sireflect_handle_t sireflect_try_register_dynamic_struct(
         return existing;
     }
 
-    sireflect_field_info_t *parsed_fields = NULL;
-    size_t field_count = 0;
-    size_t size = 0;
-    size_t align = 0;
-
-    if (!sireflect_parse_struct_fields(
-            name,
-            fields,
-            &parsed_fields,
-            &field_count,
-            0,
-            1,
-            &size,
-            &align,
-            false,
-            false
-        )) {
-        return SIREFLECT_INVALID_HANDLE;
-    }
-
-    return sireflect_registry_add_type(
-        name,
-        sireflect_kind_struct,
-        size,
-        align,
-        parsed_fields,
-        field_count,
-        NULL,
-        0
-    );
+    return sireflect_register_new_struct(name, fields, 0, 1, false, false);
 }

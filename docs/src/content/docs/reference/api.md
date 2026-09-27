@@ -384,3 +384,49 @@ int sireflect_field_copy(sireflect_handle_t type,
 
 Copies `field.size` bytes from `value` into the selected field. Returns `0` on
 success and `-1` if the field name does not exist.
+
+## Runtime traversal
+
+```c
+bool sireflect_walk_type(sireflect_handle_t root, uint32_t flags,
+    sireflect_type_visitor_t visitor, void *user);
+bool sireflect_walk_value(sireflect_handle_t type, void *value, uint32_t flags,
+    sireflect_value_visitor_t visitor, void *user);
+bool sireflect_walk_const_value(sireflect_handle_t type, const void *value,
+    uint32_t flags, sireflect_const_value_visitor_t visitor, void *user);
+```
+
+See [Runtime Reflection](/sireflect/runtime-reflection/) for event order,
+pointer behavior, flags, and callback stop behavior.
+
+## Categories and array access
+
+```c
+sireflect_category_t sireflect_type_category(sireflect_handle_t type);
+bool sireflect_type_is_numeric_handle(sireflect_handle_t type);
+bool sireflect_type_is_scalar(sireflect_handle_t type);
+bool sireflect_type_is_cstring(sireflect_handle_t type);
+bool sireflect_type_is_integral(sireflect_handle_t type);
+bool sireflect_type_is_floating(sireflect_handle_t type);
+bool sireflect_type_is_function_pointer(sireflect_handle_t type);
+const void *sireflect_array_element_ptr(sireflect_handle_t type,
+    const void *array, size_t index);
+void *sireflect_array_element_mut_ptr(sireflect_handle_t type,
+    void *array, size_t index);
+bool sireflect_enum_value_valid(sireflect_handle_t type, int64_t value);
+```
+
+## Semantic metadata
+
+```c
+bool sireflect_type_set_meta(sireflect_handle_t type, const sireflect_meta_t *meta);
+const sireflect_meta_t *sireflect_type_meta(sireflect_handle_t type,
+    const char *key);
+const sireflect_metas_t *sireflect_type_metas(sireflect_handle_t type);
+bool sireflect_field_set_meta(sireflect_handle_t type, const char *field,
+    const sireflect_meta_t *meta);
+const sireflect_meta_t *sireflect_field_meta(sireflect_handle_t type,
+    const char *field, const char *key);
+const sireflect_metas_t *sireflect_field_metas(sireflect_handle_t type,
+    const char *field);
+```

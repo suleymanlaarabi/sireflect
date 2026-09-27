@@ -7,10 +7,19 @@
 #endif
 
 typedef struct sireflect_registry_t sireflect_registry_t;
+typedef struct {
+    sireflect_metas_t view;
+} sireflect_meta_store_t;
+typedef struct {
+    sireflect_type_info_t info;
+    sireflect_meta_store_t type_meta;
+    sireflect_meta_store_t *field_meta;
+} sireflect_type_entry_t;
 
 struct sireflect_registry_t {
     sicore_vec_t types;
     sicore_map_t types_by_name;
+    sireflect_handle_t first_handle;
 };
 
 sireflect_registry_t *sireflect_registry_current(void);
@@ -45,5 +54,9 @@ sireflect_handle_t sireflect_registry_handle_by_name(const char *name);
 sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle);
 
 const sireflect_type_info_t *sireflect_registry_const_type_at(sireflect_handle_t handle);
+sireflect_type_entry_t *sireflect_registry_entry_at(sireflect_handle_t handle);
+void sireflect_registry_rollback(size_t count);
+bool sireflect_registry_finish_struct(sireflect_handle_t handle,
+    sireflect_field_info_t *fields, size_t field_count, size_t size, size_t align);
 
 #endif

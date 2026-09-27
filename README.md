@@ -16,6 +16,9 @@ compiler plugin or an external code generator.
   `Position *items[8]`, and `f32 matrix[4][4]`.
 - Field metadata with name, type handle, byte offset, size, alignment, and
   leading `const` / `volatile` qualifiers.
+- Recursive type and value visitors, category helpers, array element access,
+  and owned typed annotations for types and fields.
+- Typed self pointers such as `Node *next`, with cycle-safe type traversal.
 - Strict registration with debug diagnostics, plus recoverable registration
   through `sireflect_try_register_struct` and `sireflect_error`.
 
@@ -90,6 +93,13 @@ After a recoverable failure, call `sireflect_error()` to inspect the current
 library-owned error string. The pointer remains valid until the next public
 `sireflect_*` call except `sireflect_error()`, or until the final
 `sireflect_fini()`.
+
+Use `sireflect_walk_type` to inspect a nested type graph and
+`sireflect_walk_value` or `sireflect_walk_const_value` to inspect an object.
+Struct and array values emit enter/leave events. Field and element events carry
+direct pointers to their values. Pointer values are reported without following
+them. `sireflect_type_category` classifies common kinds, including typed
+`char *` as a C string. See the [runtime reflection guide](https://suleymanlaarabi.github.io/sireflect/runtime-reflection/).
 
 ## Documentation
 

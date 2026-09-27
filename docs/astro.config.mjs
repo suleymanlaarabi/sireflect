@@ -16,6 +16,7 @@ export default defineConfig({
             'getting-started',
             'supported-syntax',
             'type-metadata',
+            'runtime-reflection',
             'field-access',
             'limits',
           ],

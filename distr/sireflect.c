@@ -21,7 +21,7 @@
 #define SICORE_CTRL_EMPTY UINT8_C(0x80)
 #define SICORE_CTRL_DELETED UINT8_C(0xfe)
 
-/* 16 octets sur ABI 64 bits: 1/4 de ligne de cache de 64 octets. */
+/* 16 bytes on a 64-bit ABI: 1/4 of a 64-byte cache line. */
 typedef struct {
     const char *key;
     uint32_t value;
@@ -29,8 +29,8 @@ typedef struct {
 } sicore_map_entry_t;
 
 /*
- * Hash de chaîne basé sur wyhash final v4 (domaine public / Unlicense), adapté
- * et préfixé pour rester entièrement interne à cette unité de compilation.
+ * String hash based on wyhash final v4 (public domain / Unlicense), adapted
+ * and prefixed to remain entirely internal to this compilation unit.
  */
 static const uint64_t sicore_hash_secret[5] = { UINT64_C(0xa0761d6478bd642f),
                                                 UINT64_C(0xe7037ed1a0b428db),
@@ -202,7 +202,7 @@ static inline uint32_t sicore_match_byte(const uint8_t *ctrl, uint8_t byte) {
 #endif
 
 static inline uint32_t sicore_max_load(uint32_t capacity) {
-    return capacity - (capacity >> 3); /* 87,5 % */
+    return capacity - (capacity >> 3); /* 87.5% */
 }
 
 static inline uint8_t sicore_hash_h2(uint64_t hash) { return (uint8_t)(hash & UINT64_C(0x7f)); }
@@ -564,10 +564,19 @@ void sireflect_error_set(const char *message);
 #endif
 
 typedef struct sireflect_registry_t sireflect_registry_t;
+typedef struct {
+    sireflect_metas_t view;
+} sireflect_meta_store_t;
+typedef struct {
+    sireflect_type_info_t info;
+    sireflect_meta_store_t type_meta;
+    sireflect_meta_store_t *field_meta;
+} sireflect_type_entry_t;
 
 struct sireflect_registry_t {
     sicore_vec_t types;
     sicore_map_t types_by_name;
+    sireflect_handle_t first_handle;
 };
 
 sireflect_registry_t *sireflect_registry_current(void);
@@ -601,6 +610,10 @@ sireflect_handle_t sireflect_registry_handle_by_name(const char *name);
 sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle);
 
 const sireflect_type_info_t *sireflect_registry_const_type_at(sireflect_handle_t handle);
+sireflect_type_entry_t *sireflect_registry_entry_at(sireflect_handle_t handle);
+void sireflect_registry_rollback(size_t count);
+bool sireflect_registry_finish_struct(sireflect_handle_t handle,
+    sireflect_field_info_t *fields, size_t field_count, size_t size, size_t align);
 
 #endif
 
@@ -779,21 +792,22 @@ sireflect_handle_t sireflect_register_enum(const sireflect_enum_desc_t *desc) {
 }
 
 static char *sireflect_current_error = NULL;
+static bool sireflect_error_owned = false;
+static char sireflect_out_of_memory_error[] = "failed to allocate error message";
 
 static char *sireflect_error_dup(const char *message) {
     sireflect_assert(message != NULL, "error message must not be NULL");
 
     const size_t len = strlen(message);
     char *copy = malloc(len + 1);
-    sireflect_assert(copy != NULL, "failed to allocate error message");
-
-    memcpy(copy, message, len + 1);
+    if (copy != NULL) memcpy(copy, message, len + 1);
     return copy;
 }
 
 void sireflect_error_clear(void) {
-    free(sireflect_current_error);
+    if (sireflect_error_owned) free(sireflect_current_error);
     sireflect_current_error = NULL;
+    sireflect_error_owned = false;
 }
 
 void sireflect_error_set(const char *message) {
@@ -804,10 +818,232 @@ void sireflect_error_set(const char *message) {
     }
 
     sireflect_current_error = sireflect_error_dup(message);
+    if (sireflect_current_error == NULL) {
+        sireflect_current_error = sireflect_out_of_memory_error;
+    } else {
+        sireflect_error_owned = true;
+    }
 }
 
 const char *sireflect_error(void) {
     return sireflect_current_error;
+}
+
+#include <stdint.h>
+
+static sireflect_category_t category_of(sireflect_handle_t type) {
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(type);
+    if (entry == NULL) return sireflect_category_invalid;
+    switch (entry->info.kind) {
+    case sireflect_kind_bool: return sireflect_category_boolean;
+    case sireflect_kind_f32:
+    case sireflect_kind_f64: return sireflect_category_floating;
+    case sireflect_kind_enum: return sireflect_category_enum;
+    case sireflect_kind_struct: return sireflect_category_struct;
+    case sireflect_kind_array: return sireflect_category_array;
+    case sireflect_kind_function_pointer: return sireflect_category_function_pointer;
+    case sireflect_kind_ptr: return sireflect_category_pointer;
+    case sireflect_kind_pointer: {
+        sireflect_type_entry_t *pointee = sireflect_registry_entry_at(entry->info.element_type);
+        return pointee != NULL && pointee->info.kind == sireflect_kind_char
+            ? sireflect_category_cstring : sireflect_category_pointer;
+    }
+    default: return sireflect_category_integer;
+    }
+}
+
+sireflect_category_t sireflect_type_category(sireflect_handle_t type) {
+    sireflect_error_clear();
+    return category_of(type);
+}
+
+bool sireflect_type_is_numeric_handle(sireflect_handle_t type) {
+    sireflect_error_clear();
+    sireflect_category_t category = category_of(type);
+    return category == sireflect_category_integer || category == sireflect_category_floating;
+}
+
+bool sireflect_type_is_scalar(sireflect_handle_t type) {
+    sireflect_error_clear();
+    sireflect_category_t category = category_of(type);
+    return category == sireflect_category_boolean || category == sireflect_category_integer ||
+        category == sireflect_category_floating || category == sireflect_category_enum;
+}
+
+bool sireflect_type_is_cstring(sireflect_handle_t type) {
+    sireflect_error_clear();
+    return category_of(type) == sireflect_category_cstring;
+}
+
+bool sireflect_type_is_integral(sireflect_handle_t type) {
+    sireflect_error_clear();
+    return category_of(type) == sireflect_category_integer;
+}
+
+bool sireflect_type_is_floating(sireflect_handle_t type) {
+    sireflect_error_clear();
+    return category_of(type) == sireflect_category_floating;
+}
+
+bool sireflect_type_is_function_pointer(sireflect_handle_t type) {
+    sireflect_error_clear();
+    return category_of(type) == sireflect_category_function_pointer;
+}
+
+static const void *array_element(sireflect_handle_t type, const void *array, size_t index) {
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(type);
+    if (entry == NULL || entry->info.kind != sireflect_kind_array || array == NULL ||
+        index >= entry->info.element_count) return NULL;
+    sireflect_type_entry_t *element = sireflect_registry_entry_at(entry->info.element_type);
+    if (element == NULL || element->info.size == 0 ||
+        entry->info.element_count > entry->info.size / element->info.size) return NULL;
+    return (const unsigned char *)array + index * element->info.size;
+}
+
+const void *sireflect_array_element_ptr(sireflect_handle_t array_type,
+    const void *array, size_t index) {
+    sireflect_error_clear();
+    return array_element(array_type, array, index);
+}
+
+void *sireflect_array_element_mut_ptr(sireflect_handle_t array_type,
+    void *array, size_t index) {
+    sireflect_error_clear();
+    return (void *)array_element(array_type, array, index);
+}
+
+bool sireflect_enum_value_valid(sireflect_handle_t type, int64_t value) {
+    sireflect_error_clear();
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(type);
+    if (entry == NULL || entry->info.kind != sireflect_kind_enum) return false;
+    for (size_t i = 0; i < entry->info.enum_values.value_count; i++) {
+        if (entry->info.enum_values.values[i].value == value) return true;
+    }
+    return false;
+}
+
+static char *dup_string(const char *src) {
+    size_t len = strlen(src);
+    char *copy = malloc(len + 1);
+    if (copy != NULL) memcpy(copy, src, len + 1);
+    return copy;
+}
+
+static const sireflect_meta_t *find_meta(const sireflect_meta_store_t *store, const char *key) {
+    for (size_t i = 0; i < store->view.count; i++) {
+        if (strcmp(store->view.items[i]->key, key) == 0) return store->view.items[i];
+    }
+    return NULL;
+}
+
+static bool set_meta(sireflect_meta_store_t *store, const sireflect_meta_t *meta) {
+    if (meta == NULL || meta->key == NULL || meta->key[0] == '\0' ||
+        meta->kind < SIREFLECT_META_STRING || meta->kind > SIREFLECT_META_F64 ||
+        (meta->kind == SIREFLECT_META_STRING && meta->value.string == NULL)) {
+        sireflect_error_set("invalid metadata value or key");
+        return false;
+    }
+    char *key = dup_string(meta->key);
+    char *string = meta->kind == SIREFLECT_META_STRING ? dup_string(meta->value.string) : NULL;
+    if (key == NULL || (meta->kind == SIREFLECT_META_STRING && string == NULL)) {
+        free(key);
+        free(string);
+        sireflect_error_set("failed to allocate metadata");
+        return false;
+    }
+    sireflect_meta_t *existing = (sireflect_meta_t *)find_meta(store, meta->key);
+    if (existing != NULL) {
+        free((char *)existing->key);
+        if (existing->kind == SIREFLECT_META_STRING) free((char *)existing->value.string);
+        *existing = *meta;
+        existing->key = key;
+        if (meta->kind == SIREFLECT_META_STRING) existing->value.string = string;
+        return true;
+    }
+    sireflect_meta_t *item = malloc(sizeof(*item));
+    if (item == NULL) {
+        free(key);
+        free(string);
+        sireflect_error_set("failed to allocate metadata");
+        return false;
+    }
+    *item = *meta;
+    item->key = key;
+    if (meta->kind == SIREFLECT_META_STRING) item->value.string = string;
+    if (store->view.count == SIZE_MAX / sizeof(*store->view.items)) {
+        free(item);
+        free(key);
+        free(string);
+        sireflect_error_set("metadata list is too large");
+        return false;
+    }
+    const sireflect_meta_t **items = realloc((void *)store->view.items,
+        (store->view.count + 1) * sizeof(*items));
+    if (items == NULL) {
+        free(item);
+        free(key);
+        free(string);
+        sireflect_error_set("failed to allocate metadata list");
+        return false;
+    }
+    store->view.items = items;
+    items[store->view.count++] = item;
+    return true;
+}
+
+static sireflect_meta_store_t *type_store(sireflect_handle_t type) {
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(type);
+    return entry == NULL ? NULL : &entry->type_meta;
+}
+
+static sireflect_meta_store_t *field_store(sireflect_handle_t type, const char *field) {
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(type);
+    if (entry == NULL || field == NULL) return NULL;
+    for (size_t i = 0; i < entry->info.fields.field_count; i++) {
+        if (strcmp(entry->info.fields.fields[i].name, field) == 0) return &entry->field_meta[i];
+    }
+    return NULL;
+}
+
+bool sireflect_type_set_meta(sireflect_handle_t type, const sireflect_meta_t *meta) {
+    sireflect_error_clear();
+    sireflect_meta_store_t *store = type_store(type);
+    if (store == NULL) { sireflect_error_set("invalid metadata type"); return false; }
+    return set_meta(store, meta);
+}
+
+const sireflect_meta_t *sireflect_type_meta(sireflect_handle_t type, const char *key) {
+    sireflect_error_clear();
+    sireflect_meta_store_t *store = type_store(type);
+    return store == NULL || key == NULL ? NULL : find_meta(store, key);
+}
+
+const sireflect_metas_t *sireflect_type_metas(sireflect_handle_t type) {
+    sireflect_error_clear();
+    sireflect_meta_store_t *store = type_store(type);
+    return store == NULL ? NULL : &store->view;
+}
+
+bool sireflect_field_set_meta(sireflect_handle_t type, const char *field,
+    const sireflect_meta_t *meta) {
+    sireflect_error_clear();
+    sireflect_meta_store_t *store = field_store(type, field);
+    if (store == NULL) { sireflect_error_set("unknown metadata field or type"); return false; }
+    return set_meta(store, meta);
+}
+
+const sireflect_meta_t *sireflect_field_meta(sireflect_handle_t type,
+    const char *field, const char *key) {
+    sireflect_error_clear();
+    sireflect_meta_store_t *store = field_store(type, field);
+    return store == NULL || key == NULL ? NULL : find_meta(store, key);
+}
+
+const sireflect_metas_t *sireflect_field_metas(sireflect_handle_t type,
+    const char *field) {
+    sireflect_error_clear();
+    sireflect_meta_store_t *store = field_store(type, field);
+    return store == NULL ? NULL : &store->view;
 }
 
 const sireflect_field_info_t *
@@ -911,7 +1147,6 @@ bool sireflect_parse_struct_fields(
 
 #endif
 
-#include <stdint.h>
 #include <stdio.h>
 
 #define SIREFLECT_MAX_ARRAY_DIMS 16
@@ -1680,6 +1915,12 @@ static inline void sireflect_parse_declarator(
         return;
     }
 
+    if (!is_pointer && !is_function_pointer &&
+        strcmp(sireflect_registry_const_type_at(field_type)->name, parser->struct_name) == 0) {
+        sireflect_parser_fail_at(parser, name_token, "recursive field must be a pointer");
+        return;
+    }
+
     if (is_function_pointer) {
         field_type = sireflect_registry_get_or_add_function_pointer_type(field_type);
     } else if (is_pointer) {
@@ -1872,6 +2113,7 @@ bool sireflect_parse_struct_fields(
 
 static sireflect_registry_t sireflect_global_registry;
 static size_t sireflect_global_references;
+static sireflect_handle_t sireflect_next_handle = 1;
 
 bool sireflect_registry_is_initialized(void) {
     return sireflect_global_references != 0;
@@ -1924,12 +2166,12 @@ sireflect_format_array_type_name(const sireflect_type_info_t *element, size_t el
 }
 
 static sireflect_handle_t sireflect_handle_from_index(size_t index) {
-    return (sireflect_handle_t)(index + 1);
+    return sireflect_global_registry.first_handle + (sireflect_handle_t)index;
 }
 
 static size_t sireflect_index_from_handle(sireflect_handle_t handle) {
-    sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "type handle must be valid");
-    return (size_t)(handle - 1);
+    sireflect_assert(handle >= sireflect_global_registry.first_handle, "type handle must be valid");
+    return (size_t)(handle - sireflect_global_registry.first_handle);
 }
 
 sireflect_handle_t sireflect_registry_add_type(
@@ -1948,7 +2190,9 @@ sireflect_handle_t sireflect_registry_add_type(
     sireflect_assert(size != 0 || kind == sireflect_kind_struct, "non-struct type size must not be zero");
     sireflect_assert(align != 0, "type alignment must not be zero");
 
-    const sireflect_type_info_t type = {
+    sireflect_type_entry_t *entry = calloc(1, sizeof(*entry));
+    sireflect_assert(entry != NULL, "failed to allocate type entry");
+    entry->info = (sireflect_type_info_t){
         .name = sireflect_dup_cstr(name),
         .kind = kind,
         .size = size,
@@ -1966,10 +2210,14 @@ sireflect_handle_t sireflect_registry_add_type(
         .element_type = SIREFLECT_INVALID_HANDLE,
         .element_count = 0,
     };
-    sicore_vec_push(&reg->types, &type, sizeof(type));
+    if (field_count != 0) {
+        entry->field_meta = calloc(field_count, sizeof(*entry->field_meta));
+        sireflect_assert(entry->field_meta != NULL, "failed to allocate field metadata stores");
+    }
+    sicore_vec_push(&reg->types, &entry, sizeof(entry));
 
     const uint32_t index = reg->types.size - 1;
-    sicore_map_set(&reg->types_by_name, type.name, index);
+    sicore_map_set(&reg->types_by_name, entry->info.name, index);
 
     return sireflect_handle_from_index((size_t)index);
 }
@@ -2140,7 +2388,8 @@ void sireflect_init(void) {
 
     if (sireflect_global_references == 0) {
         sireflect_global_references = 1;
-        sicore_vec_init(&sireflect_global_registry.types, sizeof(sireflect_type_info_t));
+        sireflect_global_registry.first_handle = sireflect_next_handle;
+        sicore_vec_init(&sireflect_global_registry.types, sizeof(sireflect_type_entry_t *));
         sicore_map_init(&sireflect_global_registry.types_by_name);
         sireflect_register_builtin_types();
         return;
@@ -2150,25 +2399,77 @@ void sireflect_init(void) {
     sireflect_global_references++;
 }
 
+static void sireflect_meta_store_clear(sireflect_meta_store_t *store) {
+    for (size_t i = 0; i < store->view.count; i++) {
+        sireflect_meta_t *meta = (sireflect_meta_t *)store->view.items[i];
+        free((char *)meta->key);
+        if (meta->kind == SIREFLECT_META_STRING) free((char *)meta->value.string);
+        free(meta);
+    }
+    free((void *)store->view.items);
+}
+
+static void sireflect_entry_clear(sireflect_type_entry_t *entry) {
+    sireflect_type_info_t *type = &entry->info;
+
+    free((char *)type->name);
+
+    for (size_t f = 0; f < type->fields.field_count; f++) {
+        free((char *)type->fields.fields[f].name);
+    }
+
+    free(type->fields.fields);
+
+    for (size_t e = 0; e < type->enum_values.value_count; e++) {
+        free((char *)type->enum_values.values[e].name);
+    }
+    free(type->enum_values.values);
+    sireflect_meta_store_clear(&entry->type_meta);
+    for (size_t f = 0; f < type->fields.field_count; f++) {
+        sireflect_meta_store_clear(&entry->field_meta[f]);
+    }
+    free(entry->field_meta);
+    free(entry);
+}
+
+void sireflect_registry_rollback(size_t count) {
+    sireflect_registry_t *reg = &sireflect_global_registry;
+    while (reg->types.size > count) {
+        const uint32_t index = reg->types.size - 1;
+        sireflect_type_entry_t *entry = *sicore_vec_get_mut(&reg->types, index, sireflect_type_entry_t *);
+        sireflect_entry_clear(entry);
+        reg->types.size--;
+    }
+    sicore_map_fini(&reg->types_by_name);
+    sicore_map_init(&reg->types_by_name);
+    for (uint32_t i = 0; i < reg->types.size; i++) {
+        sireflect_type_entry_t *entry = *sicore_vec_get_mut(&reg->types, i, sireflect_type_entry_t *);
+        sicore_map_set(&reg->types_by_name, entry->info.name, i);
+    }
+}
+
+bool sireflect_registry_finish_struct(sireflect_handle_t handle,
+    sireflect_field_info_t *fields, size_t field_count, size_t size, size_t align) {
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(handle);
+    sireflect_meta_store_t *stores = field_count ? calloc(field_count, sizeof(*stores)) : NULL;
+    if (field_count && stores == NULL) {
+        return false;
+    }
+    entry->info.fields = (sireflect_fields_t){ .fields = fields, .field_count = field_count };
+    entry->info.size = size;
+    entry->info.align = align;
+    entry->field_meta = stores;
+    return true;
+}
+
 static void sireflect_registry_clear(void) {
     sireflect_registry_t *reg = &sireflect_global_registry;
-
     for (uint32_t i = 0; i < reg->types.size; i++) {
-        sireflect_type_info_t *type = sicore_vec_get_mut(&reg->types, i, sireflect_type_info_t);
-
-        free((char *)type->name);
-
-        for (size_t f = 0; f < type->fields.field_count; f++) {
-            free((char *)type->fields.fields[f].name);
-        }
-
-        free(type->fields.fields);
-
-        for (size_t e = 0; e < type->enum_values.value_count; e++) {
-            free((char *)type->enum_values.values[e].name);
-        }
-        free(type->enum_values.values);
+        sireflect_type_entry_t *entry = *sicore_vec_get_mut(&reg->types, i, sireflect_type_entry_t *);
+        sireflect_entry_clear(entry);
     }
+
+    sireflect_next_handle = reg->first_handle + reg->types.size;
 
     sicore_map_fini(&reg->types_by_name);
     sicore_vec_fini(&reg->types);
@@ -2215,11 +2516,51 @@ const sireflect_type_info_t *sireflect_registry_const_type_at(sireflect_handle_t
     const size_t index = sireflect_index_from_handle(handle);
     sireflect_assert(index < reg->types.size, "type handle is out of range");
 
-    return sicore_vec_get(&reg->types, index, sireflect_type_info_t);
+    const sireflect_type_entry_t *entry = *sicore_vec_get(&reg->types, index, sireflect_type_entry_t *);
+    return &entry->info;
+}
+
+sireflect_type_entry_t *sireflect_registry_entry_at(sireflect_handle_t handle) {
+    if (!sireflect_registry_is_initialized() ||
+        handle < sireflect_global_registry.first_handle ||
+        handle - sireflect_global_registry.first_handle >= sireflect_global_registry.types.size) {
+        return NULL;
+    }
+    return *sicore_vec_get_mut(&sireflect_global_registry.types,
+        (uint32_t)(handle - sireflect_global_registry.first_handle), sireflect_type_entry_t *);
 }
 
 sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle) {
     return (sireflect_type_info_t *)sireflect_registry_const_type_at(handle);
+}
+
+static sireflect_handle_t sireflect_register_new_struct(
+    const char *name, const char *source, size_t size, size_t align,
+    bool validate_layout, bool fail_fast
+) {
+    sireflect_registry_t *reg = sireflect_registry_current();
+    const size_t checkpoint = reg->types.size;
+    sireflect_handle_t handle = sireflect_registry_add_type(
+        name, sireflect_kind_struct, size, align, NULL, 0, NULL, 0
+    );
+    sireflect_field_info_t *fields = NULL;
+    size_t field_count = 0;
+    size_t parsed_size = 0;
+    size_t parsed_align = 0;
+    if (!sireflect_parse_struct_fields(name, source, &fields, &field_count,
+        size, align, &parsed_size, &parsed_align, validate_layout, fail_fast)) {
+        sireflect_registry_rollback(checkpoint);
+        return SIREFLECT_INVALID_HANDLE;
+    }
+    if (!sireflect_registry_finish_struct(handle, fields, field_count,
+        validate_layout ? size : parsed_size, validate_layout ? align : parsed_align)) {
+        for (size_t i = 0; i < field_count; i++) free((char *)fields[i].name);
+        free(fields);
+        sireflect_registry_rollback(checkpoint);
+        sireflect_error_set("failed to allocate field metadata stores");
+        return SIREFLECT_INVALID_HANDLE;
+    }
+    return handle;
 }
 
 sireflect_handle_t
@@ -2246,36 +2587,8 @@ sireflect_try_register_struct(const sireflect_struct_desc_t *desc) {
         return existing;
     }
 
-    sireflect_field_info_t *parsed_fields = NULL;
-    size_t field_count = 0;
-    size_t parsed_size = 0;
-    size_t parsed_align = 0;
-
-    if (!sireflect_parse_struct_fields(
-        desc->name,
-        desc->fields,
-        &parsed_fields,
-        &field_count,
-        desc->size,
-        desc->align,
-        &parsed_size,
-        &parsed_align,
-        true,
-        false
-    )) {
-        return SIREFLECT_INVALID_HANDLE;
-    }
-
-    return sireflect_registry_add_type(
-        desc->name,
-        sireflect_kind_struct,
-        desc->size,
-        desc->align,
-        parsed_fields,
-        field_count,
-        NULL,
-        0
-    );
+    return sireflect_register_new_struct(desc->name, desc->fields,
+        desc->size, desc->align, true, false);
 }
 
 sireflect_handle_t
@@ -2310,34 +2623,8 @@ sireflect_register_struct(const sireflect_struct_desc_t *desc) {
             return existing;
         }
 
-        sireflect_field_info_t *parsed_fields = NULL;
-        size_t field_count = 0;
-        size_t parsed_size = 0;
-        size_t parsed_align = 0;
-
-        if (sireflect_parse_struct_fields(
-                desc->name,
-                desc->fields,
-                &parsed_fields,
-                &field_count,
-                desc->size,
-                desc->align,
-                &parsed_size,
-                &parsed_align,
-                true,
-                true
-            )) {
-            handle = sireflect_registry_add_type(
-                desc->name,
-                sireflect_kind_struct,
-                desc->size,
-                desc->align,
-                parsed_fields,
-                field_count,
-                NULL,
-                0
-            );
-        }
+        handle = sireflect_register_new_struct(desc->name, desc->fields,
+            desc->size, desc->align, true, true);
     }
 
     sireflect_assert(handle != SIREFLECT_INVALID_HANDLE, "failed to register struct");
@@ -2367,36 +2654,7 @@ sireflect_handle_t sireflect_try_register_dynamic_struct(
         return existing;
     }
 
-    sireflect_field_info_t *parsed_fields = NULL;
-    size_t field_count = 0;
-    size_t size = 0;
-    size_t align = 0;
-
-    if (!sireflect_parse_struct_fields(
-            name,
-            fields,
-            &parsed_fields,
-            &field_count,
-            0,
-            1,
-            &size,
-            &align,
-            false,
-            false
-        )) {
-        return SIREFLECT_INVALID_HANDLE;
-    }
-
-    return sireflect_registry_add_type(
-        name,
-        sireflect_kind_struct,
-        size,
-        align,
-        parsed_fields,
-        field_count,
-        NULL,
-        0
-    );
+    return sireflect_register_new_struct(name, fields, 0, 1, false, false);
 }
 
 const char *sireflect_kind_name(sireflect_kind_t kind) {
@@ -2622,5 +2880,190 @@ sireflect_type_pointee(sireflect_handle_t ref) {
         "type must be a typed pointer"
     );
     return type->element_type;
+}
+
+#define SIREFLECT_WALK_MAX_DEPTH 256
+
+typedef enum { walk_types, walk_const_values, walk_mut_values } walk_mode_t;
+
+typedef struct {
+    walk_mode_t mode;
+    uint32_t flags;
+    void *user;
+    sireflect_type_visitor_t type_visitor;
+    sireflect_const_value_visitor_t const_visitor;
+    sireflect_value_visitor_t mut_visitor;
+    sireflect_handle_t active[SIREFLECT_WALK_MAX_DEPTH + 1];
+    unsigned char *seen;
+    sireflect_handle_t first_handle;
+} walk_state_t;
+
+static bool emit_value(walk_state_t *state, sireflect_value_event_t event,
+    sireflect_handle_t type, const sireflect_type_info_t *info,
+    const sireflect_field_info_t *field, const void *ptr, void *mut_ptr,
+    size_t index, size_t depth) {
+    if (state->mode == walk_const_values) {
+        sireflect_const_value_visit_t visit = {
+            .event = event, .type = type, .info = info, .field = field,
+            .ptr = ptr, .index = index, .depth = depth
+        };
+        return state->const_visitor(&visit, state->user);
+    }
+    sireflect_value_visit_t visit = {
+        .event = event, .type = type, .info = info, .field = field,
+        .ptr = mut_ptr, .index = index, .depth = depth
+    };
+    return state->mut_visitor(&visit, state->user);
+}
+
+static bool walk_node(walk_state_t *state, sireflect_handle_t type,
+    sireflect_walk_relation_t relation, const sireflect_field_info_t *field,
+    sireflect_handle_t parent, const void *ptr, void *mut_ptr,
+    size_t index, size_t depth) {
+    sireflect_type_entry_t *entry = sireflect_registry_entry_at(type);
+    if (entry == NULL) {
+        sireflect_error_set("invalid type in reflection graph");
+        return false;
+    }
+    if (depth > SIREFLECT_WALK_MAX_DEPTH) {
+        sireflect_error_set("reflection walk depth limit exceeded");
+        return false;
+    }
+    const sireflect_type_info_t *info = &entry->info;
+    if (state->mode == walk_types) {
+        for (size_t i = 0; i < depth; i++) {
+            if (state->active[i] == type) return true;
+        }
+        if (state->seen != NULL) {
+            size_t slot = (size_t)(type - state->first_handle);
+            if (state->seen[slot]) return true;
+            state->seen[slot] = 1;
+        }
+        state->active[depth] = type;
+        sireflect_type_visit_t visit = {
+            .type = type, .info = info, .relation = relation,
+            .field = field, .parent_type = parent, .depth = depth
+        };
+        if (!state->type_visitor(&visit, state->user)) return false;
+    } else {
+        sireflect_value_event_t event = SIREFLECT_VALUE_LEAF;
+        if (info->kind == sireflect_kind_struct) event = SIREFLECT_VALUE_ENTER_STRUCT;
+        else if (info->kind == sireflect_kind_array) event = SIREFLECT_VALUE_ENTER_ARRAY;
+        else if (info->kind == sireflect_kind_pointer || info->kind == sireflect_kind_ptr ||
+            info->kind == sireflect_kind_function_pointer) event = SIREFLECT_VALUE_POINTER;
+        else event = SIREFLECT_VALUE_LEAF;
+        if (!emit_value(state, event, type, info, field, ptr, mut_ptr, index, depth)) return false;
+    }
+
+    if (info->kind == sireflect_kind_struct) {
+        for (size_t i = 0; i < info->fields.field_count; i++) {
+            if (depth == SIREFLECT_WALK_MAX_DEPTH) {
+                sireflect_error_set("reflection walk depth limit exceeded");
+                return false;
+            }
+            const sireflect_field_info_t *child = &info->fields.fields[i];
+            if (child->offset > info->size || child->size > info->size - child->offset) {
+                sireflect_error_set("invalid reflected field bounds");
+                return false;
+            }
+            const void *child_ptr = ptr ? (const unsigned char *)ptr + child->offset : NULL;
+            void *child_mut_ptr = mut_ptr ? (unsigned char *)mut_ptr + child->offset : NULL;
+            sireflect_type_entry_t *child_entry = sireflect_registry_entry_at(child->type);
+            if (child_entry == NULL) {
+                sireflect_error_set("invalid reflected field type");
+                return false;
+            }
+            if (state->mode != walk_types &&
+                !emit_value(state, SIREFLECT_VALUE_FIELD, child->type,
+                    &child_entry->info, child,
+                    child_ptr, child_mut_ptr, 0, depth + 1)) return false;
+            if (!walk_node(state, child->type, SIREFLECT_WALK_FIELD, child, type,
+                child_ptr, child_mut_ptr, 0, depth + 1)) return false;
+        }
+        if (state->mode != walk_types &&
+            !emit_value(state, SIREFLECT_VALUE_LEAVE_STRUCT, type, info, field,
+                ptr, mut_ptr, index, depth)) return false;
+    } else if (info->kind == sireflect_kind_array) {
+        sireflect_type_entry_t *element = sireflect_registry_entry_at(info->element_type);
+        if (element == NULL || element->info.size == 0 || info->element_count == 0 ||
+            info->element_count > info->size / element->info.size) {
+            sireflect_error_set("invalid reflected array metadata");
+            return false;
+        }
+        size_t count = state->mode == walk_types ? 1 : info->element_count;
+        for (size_t i = 0; i < count; i++) {
+            if (depth == SIREFLECT_WALK_MAX_DEPTH) {
+                sireflect_error_set("reflection walk depth limit exceeded");
+                return false;
+            }
+            size_t offset = i * element->info.size;
+            const void *child_ptr = ptr ? (const unsigned char *)ptr + offset : NULL;
+            void *child_mut_ptr = mut_ptr ? (unsigned char *)mut_ptr + offset : NULL;
+            if (state->mode != walk_types &&
+                !emit_value(state, SIREFLECT_VALUE_ARRAY_ELEMENT, info->element_type,
+                    &element->info, NULL, child_ptr, child_mut_ptr, i, depth + 1)) return false;
+            if (!walk_node(state, info->element_type, SIREFLECT_WALK_ARRAY_ELEMENT,
+                NULL, type, child_ptr, child_mut_ptr, i, depth + 1)) return false;
+        }
+        if (state->mode != walk_types &&
+            !emit_value(state, SIREFLECT_VALUE_LEAVE_ARRAY, type, info, field,
+                ptr, mut_ptr, index, depth)) return false;
+    } else if (state->mode == walk_types && info->kind == sireflect_kind_pointer &&
+        (state->flags & SIREFLECT_WALK_FOLLOW_POINTERS)) {
+        if (!walk_node(state, info->element_type, SIREFLECT_WALK_POINTER_TARGET,
+            NULL, type, NULL, NULL, 0, depth + 1)) return false;
+    } else if (state->mode == walk_types && info->kind == sireflect_kind_function_pointer) {
+        if (!walk_node(state, info->element_type, SIREFLECT_WALK_FUNCTION_RETURN,
+            NULL, type, NULL, NULL, 0, depth + 1)) return false;
+    }
+    return true;
+}
+
+bool sireflect_walk_type(sireflect_handle_t root, uint32_t flags,
+    sireflect_type_visitor_t visitor, void *user) {
+    sireflect_error_clear();
+    if (visitor == NULL || sireflect_registry_entry_at(root) == NULL ||
+        (flags & ~(SIREFLECT_WALK_FOLLOW_POINTERS | SIREFLECT_WALK_DEDUPLICATE))) {
+        sireflect_error_set("invalid type walk arguments");
+        return false;
+    }
+    walk_state_t state = { .mode = walk_types, .flags = flags,
+        .user = user, .type_visitor = visitor,
+        .first_handle = sireflect_registry_current()->first_handle };
+    if (flags & SIREFLECT_WALK_DEDUPLICATE) {
+        state.seen = calloc(sireflect_registry_current()->types.size, 1);
+        if (state.seen == NULL) {
+            sireflect_error_set("failed to allocate type walk state");
+            return false;
+        }
+    }
+    bool result = walk_node(&state, root, SIREFLECT_WALK_ROOT,
+        NULL, SIREFLECT_INVALID_HANDLE, NULL, NULL, 0, 0);
+    free(state.seen);
+    return result;
+}
+
+static bool walk_value_common(sireflect_handle_t type, const void *value,
+    void *mut_value, uint32_t flags, walk_state_t *state) {
+    sireflect_error_clear();
+    if (sireflect_registry_entry_at(type) == NULL || value == NULL || flags != 0 ||
+        (state->mode == walk_const_values ? state->const_visitor == NULL : state->mut_visitor == NULL)) {
+        sireflect_error_set("invalid value walk arguments");
+        return false;
+    }
+    return walk_node(state, type, SIREFLECT_WALK_ROOT, NULL,
+        SIREFLECT_INVALID_HANDLE, value, mut_value, 0, 0);
+}
+
+bool sireflect_walk_value(sireflect_handle_t type, void *value, uint32_t flags,
+    sireflect_value_visitor_t visitor, void *user) {
+    walk_state_t state = { .mode = walk_mut_values, .user = user, .mut_visitor = visitor };
+    return walk_value_common(type, value, value, flags, &state);
+}
+
+bool sireflect_walk_const_value(sireflect_handle_t type, const void *value, uint32_t flags,
+    sireflect_const_value_visitor_t visitor, void *user) {
+    walk_state_t state = { .mode = walk_const_values, .user = user, .const_visitor = visitor };
+    return walk_value_common(type, value, NULL, flags, &state);
 }
 

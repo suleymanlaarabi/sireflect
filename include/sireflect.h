@@ -167,6 +167,104 @@ typedef struct {
     size_t element_count;
 } sireflect_type_info_t;
 
+/* Type graph visits are preorder. A false callback result stops the walk. */
+typedef enum {
+    SIREFLECT_WALK_ROOT,
+    SIREFLECT_WALK_FIELD,
+    SIREFLECT_WALK_ARRAY_ELEMENT,
+    SIREFLECT_WALK_POINTER_TARGET,
+    SIREFLECT_WALK_FUNCTION_RETURN
+} sireflect_walk_relation_t;
+
+typedef struct {
+    sireflect_handle_t type;
+    const sireflect_type_info_t *info;
+    sireflect_walk_relation_t relation;
+    const sireflect_field_info_t *field;
+    sireflect_handle_t parent_type;
+    size_t depth;
+} sireflect_type_visit_t;
+
+typedef bool (*sireflect_type_visitor_t)(const sireflect_type_visit_t *, void *);
+
+typedef enum {
+    SIREFLECT_WALK_FOLLOW_POINTERS = 1u << 0,
+    SIREFLECT_WALK_DEDUPLICATE = 1u << 1
+} sireflect_walk_flag_t;
+
+typedef enum {
+    SIREFLECT_VALUE_ENTER_STRUCT,
+    SIREFLECT_VALUE_LEAVE_STRUCT,
+    SIREFLECT_VALUE_FIELD,
+    SIREFLECT_VALUE_ENTER_ARRAY,
+    SIREFLECT_VALUE_LEAVE_ARRAY,
+    SIREFLECT_VALUE_ARRAY_ELEMENT,
+    SIREFLECT_VALUE_LEAF,
+    SIREFLECT_VALUE_POINTER
+} sireflect_value_event_t;
+
+typedef struct {
+    sireflect_value_event_t event;
+    sireflect_handle_t type;
+    const sireflect_type_info_t *info;
+    const sireflect_field_info_t *field;
+    const void *ptr;
+    size_t index;
+    size_t depth;
+} sireflect_const_value_visit_t;
+
+typedef struct {
+    sireflect_value_event_t event;
+    sireflect_handle_t type;
+    const sireflect_type_info_t *info;
+    const sireflect_field_info_t *field;
+    void *ptr;
+    size_t index;
+    size_t depth;
+} sireflect_value_visit_t;
+
+typedef bool (*sireflect_const_value_visitor_t)(const sireflect_const_value_visit_t *, void *);
+typedef bool (*sireflect_value_visitor_t)(const sireflect_value_visit_t *, void *);
+
+typedef enum {
+    sireflect_category_invalid,
+    sireflect_category_boolean,
+    sireflect_category_integer,
+    sireflect_category_floating,
+    sireflect_category_enum,
+    sireflect_category_struct,
+    sireflect_category_array,
+    sireflect_category_cstring,
+    sireflect_category_pointer,
+    sireflect_category_function_pointer
+} sireflect_category_t;
+
+typedef enum {
+    SIREFLECT_META_STRING,
+    SIREFLECT_META_BOOL,
+    SIREFLECT_META_I64,
+    SIREFLECT_META_U64,
+    SIREFLECT_META_F64
+} sireflect_meta_kind_t;
+
+typedef struct {
+    const char *key;
+    sireflect_meta_kind_t kind;
+    union {
+        const char *string;
+        bool boolean;
+        int64_t i64;
+        uint64_t u64;
+        double f64;
+    } value;
+} sireflect_meta_t;
+
+/* Borrowed view. Its items pointer can change when metadata is added. */
+typedef struct {
+    const sireflect_meta_t *const *items;
+    size_t count;
+} sireflect_metas_t;
+
 typedef struct {
     const char *name;
     const char *fields;
@@ -189,7 +287,8 @@ typedef struct {
  * Use sireflect(name) to register the generated metadata.
  */
 #define SIREFLECT_STRUCT(type_name, ...)                                                           \
-    typedef struct __VA_ARGS__ type_name;                                                          \
+    typedef struct type_name type_name;                                                             \
+    struct type_name __VA_ARGS__;                                                                   \
     SIREFLECT_UNUSED static const sireflect_struct_desc_t sireflect_desc(type_name) = {            \
         .name = #type_name,                                                                        \
         .fields = #__VA_ARGS__,                                                                    \
@@ -333,6 +432,47 @@ SIREFLECT_API int sireflect_field_copy(
     const char *field,
     const void *value
 );
+
+/* Walks a type graph. Pointer targets are followed only with FOLLOW_POINTERS.
+ * Cycles are cut on the active path; DEDUPLICATE visits each handle once.
+ * Callback false returns false without setting an error. */
+SIREFLECT_API bool sireflect_walk_type(sireflect_handle_t root, uint32_t flags,
+    sireflect_type_visitor_t visitor, void *user);
+
+/* Walks actual values. Pointer and function pointer values are never dereferenced.
+ * FOLLOW_POINTERS is invalid for value walks. Callback false stops immediately. */
+SIREFLECT_API bool sireflect_walk_value(sireflect_handle_t type, void *value, uint32_t flags,
+    sireflect_value_visitor_t visitor, void *user);
+SIREFLECT_API bool sireflect_walk_const_value(sireflect_handle_t type, const void *value,
+    uint32_t flags, sireflect_const_value_visitor_t visitor, void *user);
+
+SIREFLECT_API sireflect_category_t sireflect_type_category(sireflect_handle_t type);
+SIREFLECT_API bool sireflect_type_is_numeric_handle(sireflect_handle_t type);
+SIREFLECT_API bool sireflect_type_is_scalar(sireflect_handle_t type);
+SIREFLECT_API bool sireflect_type_is_cstring(sireflect_handle_t type);
+SIREFLECT_API bool sireflect_type_is_integral(sireflect_handle_t type);
+SIREFLECT_API bool sireflect_type_is_floating(sireflect_handle_t type);
+SIREFLECT_API bool sireflect_type_is_function_pointer(sireflect_handle_t type);
+
+SIREFLECT_API const void *sireflect_array_element_ptr(sireflect_handle_t array_type,
+    const void *array, size_t index);
+SIREFLECT_API void *sireflect_array_element_mut_ptr(sireflect_handle_t array_type,
+    void *array, size_t index);
+
+/* Keys and string values are copied. Returned metadata is borrowed until the
+ * final fini; replacing a key updates the same object. */
+SIREFLECT_API bool sireflect_type_set_meta(sireflect_handle_t type, const sireflect_meta_t *meta);
+SIREFLECT_API const sireflect_meta_t *sireflect_type_meta(sireflect_handle_t type,
+    const char *key);
+SIREFLECT_API const sireflect_metas_t *sireflect_type_metas(sireflect_handle_t type);
+SIREFLECT_API bool sireflect_field_set_meta(sireflect_handle_t type, const char *field,
+    const sireflect_meta_t *meta);
+SIREFLECT_API const sireflect_meta_t *sireflect_field_meta(sireflect_handle_t type,
+    const char *field, const char *key);
+SIREFLECT_API const sireflect_metas_t *sireflect_field_metas(sireflect_handle_t type,
+    const char *field);
+
+SIREFLECT_API bool sireflect_enum_value_valid(sireflect_handle_t type, int64_t value);
 
 #ifdef __cplusplus
 }

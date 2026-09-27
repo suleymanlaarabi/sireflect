@@ -96,6 +96,18 @@ void parser_errors_missing_declarator_diagnostic(void);
 void parser_errors_post_pointer_qualifier_diagnostic(void);
 void parser_errors_unsupported_type_specifier_diagnostic(void);
 
+// Testsuite 'runtime'
+void runtime_type_walk_shapes(void);
+void runtime_type_walk_cycles_and_dedup(void);
+void runtime_type_walk_stop_and_errors(void);
+void runtime_value_walk_mutable(void);
+void runtime_value_walk_const_and_pointers(void);
+void runtime_categories_and_arrays(void);
+void runtime_metadata_ownership_and_errors(void);
+void runtime_stable_handles_and_pointers(void);
+void runtime_recursive_registration_rollback(void);
+void runtime_depth_limit(void);
+
 // Testsuite 'lifecycle'
 void lifecycle_nested_init_fini(void);
 void lifecycle_fini_without_init_asserts(void);
@@ -398,6 +410,49 @@ bake_test_case parser_errors_testcases[] = {
     }
 };
 
+bake_test_case runtime_testcases[] = {
+    {
+        "type_walk_shapes",
+        runtime_type_walk_shapes
+    },
+    {
+        "type_walk_cycles_and_dedup",
+        runtime_type_walk_cycles_and_dedup
+    },
+    {
+        "type_walk_stop_and_errors",
+        runtime_type_walk_stop_and_errors
+    },
+    {
+        "value_walk_mutable",
+        runtime_value_walk_mutable
+    },
+    {
+        "value_walk_const_and_pointers",
+        runtime_value_walk_const_and_pointers
+    },
+    {
+        "categories_and_arrays",
+        runtime_categories_and_arrays
+    },
+    {
+        "metadata_ownership_and_errors",
+        runtime_metadata_ownership_and_errors
+    },
+    {
+        "stable_handles_and_pointers",
+        runtime_stable_handles_and_pointers
+    },
+    {
+        "recursive_registration_rollback",
+        runtime_recursive_registration_rollback
+    },
+    {
+        "depth_limit",
+        runtime_depth_limit
+    }
+};
+
 bake_test_case lifecycle_testcases[] = {
     {
         "nested_init_fini",
@@ -493,6 +548,13 @@ static bake_test_suite suites[] = {
         parser_errors_testcases
     },
     {
+        "runtime",
+        NULL,
+        NULL,
+        10,
+        runtime_testcases
+    },
+    {
         "lifecycle",
         NULL,
         NULL,
@@ -502,5 +564,5 @@ static bake_test_suite suites[] = {
 };
 
 int main(int argc, char *argv[]) {
-    return bake_test_run("sireflect.test", argc, argv, suites, 12);
+    return bake_test_run("sireflect.test", argc, argv, suites, 13);
 }
