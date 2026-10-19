@@ -2,7 +2,8 @@
 #define SIREFLECT_H
 
 /* This generated file contains includes for project dependencies. */
-#include "sireflect/bake_config.h"
+#include <sireflect/export.h>
+#include <sicore.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
