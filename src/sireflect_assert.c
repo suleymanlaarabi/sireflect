@@ -1,6 +1,5 @@
 #include <sireflect.h>
 
-#ifndef NDEBUG
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -17,4 +16,3 @@ void sireflect_assert_fail(
     fprintf(stderr, "  function: %s\n", function != NULL ? function : "(unknown)");
     abort();
 }
-#endif

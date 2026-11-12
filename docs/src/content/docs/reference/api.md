@@ -49,12 +49,14 @@ void sireflect_assert_fail(
     const char *function
 );
 
+#define sireflect_require(condition, message)
 #define sireflect_assert(condition, message)
 ```
 
 In debug builds, `sireflect_assert` reports the failed condition, message,
 source location, and function, then aborts. When `NDEBUG` is defined,
-`sireflect_assert` is compiled as a no-op.
+`sireflect_assert` is compiled as a no-op. `sireflect_require` reports and aborts
+on a failed contract in every build configuration.
 
 ## Type kind
 
@@ -87,7 +89,8 @@ typedef enum {
     sireflect_kind_long_long,
     sireflect_kind_unsigned_long_long,
     sireflect_kind_function_pointer,
-    sireflect_kind_enum
+    sireflect_kind_enum,
+    sireflect_kind_vector
 } sireflect_kind_t;
 ```
 
@@ -183,7 +186,9 @@ element type handle, and `element_count` set to the fixed array length. Typed
 pointer types have `kind == sireflect_kind_pointer`, `element_type` set to the
 pointee type handle, and `element_count == 0`. Function-pointer types have
 `kind == sireflect_kind_function_pointer`, `element_type` set to the return
-type handle, and `element_count == 0`. Other types use
+type handle, and `element_count == 0`. Vector types have
+`kind == sireflect_kind_vector`, their element layout in `element_type`, and
+`element_count == 0`; each value stores its own count. Other types use
 `SIREFLECT_INVALID_HANDLE` and `0` for those members.
 
 ## Struct declaration macros
@@ -251,7 +256,8 @@ list, size, and alignment. Most user code should call the
 Returns the existing handle if the same struct was already registered.
 
 `sireflect_register_struct` is the strict API: invalid descriptors or reflected
-syntax fail through `sireflect_assert` in debug builds.
+syntax are rejected. Invalid syntax aborts through `sireflect_require` in every
+build configuration; descriptor preconditions use debug assertions.
 `sireflect_try_register_struct` returns `SIREFLECT_INVALID_HANDLE` for those
 recoverable failures instead. Allocation failures remain non-recoverable
 assertions.
@@ -430,3 +436,24 @@ const sireflect_meta_t *sireflect_field_meta(sireflect_handle_t type,
 const sireflect_metas_t *sireflect_field_metas(sireflect_handle_t type,
     const char *field);
 ```
+
+## Registration transactions and vectors
+
+```c
+typedef struct sireflect_transaction_t sireflect_transaction_t;
+sireflect_transaction_t *sireflect_transaction_begin(void);
+uint32_t sireflect_transaction_mark(const sireflect_transaction_t *transaction);
+bool sireflect_transaction_rewind(sireflect_transaction_t *transaction, uint32_t mark);
+bool sireflect_transaction_commit(sireflect_transaction_t *transaction);
+void sireflect_transaction_abort(sireflect_transaction_t *transaction);
+sireflect_handle_t sireflect_try_replace_dynamic_struct(const char *name, const char *fields);
+
+typedef struct {
+    void *data;
+    size_t count;
+} sireflect_vector_t;
+sireflect_handle_t sireflect_vector_type(sireflect_handle_t element_type);
+```
+
+See [Runtime Reflection](../../runtime-reflection/) for transaction ownership,
+schema replacement, and vector storage contracts.

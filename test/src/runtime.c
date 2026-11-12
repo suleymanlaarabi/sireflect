@@ -12,6 +12,42 @@ SIREFLECT_STRUCT(RuntimeNode, { RuntimeNode *next; int value; });
 SIREFLECT_ENUM(RuntimeColor, { RuntimeRed = 1, RuntimeBlue = 4 });
 SIREFLECT_STRUCT(RuntimeEnumHolder, { RuntimeColor color; });
 
+static bool vector_leaf(const sireflect_const_value_visit_t *visit, void *user) {
+    if (visit->event == SIREFLECT_VALUE_LEAF) {
+        int *total = user;
+        *total += *(const int *)visit->ptr;
+    }
+    return true;
+}
+
+void runtime_vector_types_and_walk(void) {
+    sireflect_init();
+    test_uint(sireflect_vector_type(0), 0);
+    sireflect_handle_t element = sireflect_type_by_name("int");
+    sireflect_handle_t vector = sireflect_vector_type(element);
+    test_assert(vector != 0);
+    test_uint(sireflect_vector_type(element), vector);
+    test_int(sireflect_type_category(vector), sireflect_category_vector);
+    test_str(sireflect_kind_name(sireflect_type_info(vector)->kind), "vector");
+    test_assert(!sireflect_is_numeric(sireflect_kind_vector));
+    int values[] = { 2, 7, 11 };
+    sireflect_vector_t data = { values, 3 };
+    int total = 0;
+    test_assert(sireflect_walk_const_value(vector, &data, 0, vector_leaf, &total));
+    test_int(total, 20);
+    data.count = 0;
+    test_assert(sireflect_walk_const_value(vector, &data, 0, vector_leaf, &total));
+    test_int(total, 20);
+    sireflect_transaction_t *transaction = sireflect_transaction_begin();
+    sireflect_handle_t nested = sireflect_vector_type(vector);
+    char name[256];
+    snprintf(name, sizeof name, "%s", sireflect_type_name(nested));
+    sireflect_transaction_abort(transaction);
+    test_uint(sireflect_type_by_name(name), 0);
+    test_uint(sireflect_vector_type(element), vector);
+    sireflect_fini();
+}
+
 typedef struct {
     sireflect_handle_t sought;
     size_t count;
@@ -314,5 +350,111 @@ void runtime_depth_limit(void) {
         count_type, &counts));
     test_assert(sireflect_error() != NULL);
     test_assert(counts.total == 257);
+    sireflect_fini();
+}
+
+void runtime_registration_transactions(void) {
+    sireflect_init();
+    sireflect_handle_t integer = sireflect_type_by_name("int");
+    const sireflect_type_info_t *before = sireflect_type_info(integer);
+    sireflect_transaction_t *transaction = sireflect_transaction_begin();
+    test_true(transaction != NULL);
+    test_true(sireflect_transaction_begin() == NULL);
+    sireflect_handle_t pending = sireflect_try_register_dynamic_struct("PendingPoint", "{ int x; int y; }");
+    test_true(pending != SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_type_by_name("int"), integer);
+    test_true(sireflect_type_info(integer) == before);
+    test_uint(sireflect_type_info(pending)->fields.field_count, 2);
+    test_true(sireflect_try_register_dynamic_struct("InvalidPoint", "{ Missing x; }") == SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_type_by_name("PendingPoint"), pending);
+    sireflect_transaction_abort(transaction);
+    test_uint(sireflect_type_by_name("PendingPoint"), SIREFLECT_INVALID_HANDLE);
+    transaction = sireflect_transaction_begin();
+    pending = sireflect_try_register_dynamic_struct("CommittedPoint", "{ int x; }");
+    const sireflect_type_info_t *metadata = sireflect_type_info(pending);
+    test_true(sireflect_transaction_commit(transaction));
+    test_uint(sireflect_type_by_name("CommittedPoint"), pending);
+    test_true(sireflect_type_info(pending) == metadata);
+    test_true(sireflect_type_info(integer) == before);
+    sireflect_fini();
+}
+
+void runtime_registration_savepoints(void) {
+    sireflect_init();
+    sireflect_transaction_t *transaction = sireflect_transaction_begin();
+    test_true(transaction != NULL);
+    sireflect_handle_t retained = sireflect_try_register_dynamic_struct("RetainedPoint", "{ int x; }");
+    test_true(retained != SIREFLECT_INVALID_HANDLE);
+    const sireflect_type_info_t *metadata = sireflect_type_info(retained);
+    uint32_t mark = sireflect_transaction_mark(transaction);
+    sireflect_handle_t temporary = sireflect_try_register_dynamic_struct("TemporaryPoint", "{ RetainedPoint value; }");
+    test_true(temporary != SIREFLECT_INVALID_HANDLE);
+    test_false(sireflect_transaction_rewind(transaction, sireflect_transaction_mark(transaction) + 1));
+    test_true(sireflect_transaction_rewind(transaction, mark));
+    test_uint(sireflect_type_by_name("TemporaryPoint"), SIREFLECT_INVALID_HANDLE);
+    test_uint(sireflect_type_by_name("RetainedPoint"), retained);
+    test_true(sireflect_type_info(retained) == metadata);
+    temporary = sireflect_try_register_dynamic_struct("ReplacementPoint", "{ int y; }");
+    test_true(temporary != SIREFLECT_INVALID_HANDLE);
+    test_true(sireflect_transaction_commit(transaction));
+    test_uint(sireflect_type_by_name("ReplacementPoint"), temporary);
+    test_true(sireflect_type_info(retained) == metadata);
+    test_uint(sireflect_type_by_name("TemporaryPoint"), SIREFLECT_INVALID_HANDLE);
+    sireflect_fini();
+}
+
+void runtime_transactional_schema_replacement(void) {
+    sireflect_init();
+    sireflect_handle_t old = sireflect_try_register_dynamic_struct("Changing", "{ int x; }");
+    sireflect_handle_t holder = sireflect_try_register_dynamic_struct("Holder", "{ Changing items[2]; Changing *pointer; }");
+    sireflect_handle_t array = sireflect_type_fields(holder)->fields[0].type;
+    sireflect_handle_t pointer = sireflect_type_fields(holder)->fields[1].type;
+    const sireflect_type_info_t *retained = sireflect_type_info(old);
+    test_uint(sireflect_try_replace_dynamic_struct("Changing", "{}"), 0);
+    sireflect_transaction_t *transaction = sireflect_transaction_begin();
+    uint32_t mark = sireflect_transaction_mark(transaction);
+    test_uint(sireflect_try_replace_dynamic_struct("Changing", "{ Missing x; }"), 0);
+    test_uint(sireflect_type_by_name("Changing"), old);
+    sireflect_handle_t replacement = sireflect_try_replace_dynamic_struct("Changing", "{ double x; double y; }");
+    test_true(replacement != 0 && replacement != old);
+    test_uint(sireflect_type_by_name("Changing"), replacement);
+    test_uint(sireflect_type_size(old), sizeof(int));
+    test_true(sireflect_type_info(old) == retained);
+    test_true(sireflect_transaction_rewind(transaction, mark));
+    test_uint(sireflect_type_by_name("Changing"), old);
+    replacement = sireflect_try_replace_dynamic_struct("Changing", "{ double x; double y; }");
+    sireflect_handle_t updated = sireflect_try_replace_dynamic_struct("Holder", "{ Changing items[2]; Changing *pointer; }");
+    const sireflect_fields_t *fields = sireflect_type_fields(updated);
+    test_true(fields->fields[0].type != array);
+    test_true(fields->fields[1].type != pointer);
+    test_uint(sireflect_type_info(fields->fields[0].type)->element_type, replacement);
+    test_uint(sireflect_type_info(fields->fields[1].type)->element_type, replacement);
+    test_uint(sireflect_type_size(fields->fields[0].type), 4 * sizeof(double));
+    test_true(sireflect_transaction_commit(transaction));
+    test_uint(sireflect_type_by_name("Changing"), replacement);
+    test_uint(sireflect_type_info(array)->element_type, old);
+    test_uint(sireflect_type_info(pointer)->element_type, old);
+    test_uint(sireflect_type_by_name("Holder"), updated);
+    transaction = sireflect_transaction_begin();
+    test_true(sireflect_try_replace_dynamic_struct("Changing", "{}") != 0);
+    sireflect_transaction_abort(transaction);
+    test_uint(sireflect_type_by_name("Changing"), replacement);
+    test_uint(sireflect_type_by_name("Holder"), updated);
+    sireflect_fini();
+}
+
+void runtime_qualified_type_names(void) {
+    sireflect_init();
+    sireflect_handle_t nested = sireflect_try_register_dynamic_struct("Space::Nested", "{ int value; }");
+    test_true(nested != 0);
+    sireflect_handle_t container = sireflect_try_register_dynamic_struct("Space::Container",
+        "{ Space::Nested value; Space::Nested array[2]; Space::Nested *pointer; }");
+    test_true(container != 0);
+    const sireflect_fields_t *fields = sireflect_type_fields(container);
+    test_uint(fields->fields[0].type, nested);
+    test_uint(sireflect_type_info(fields->fields[1].type)->element_type, nested);
+    test_uint(sireflect_type_info(fields->fields[2].type)->element_type, nested);
+    test_uint(sireflect_try_register_dynamic_struct("Invalid", "{ int a::b; }"), 0);
+    test_uint(sireflect_try_register_dynamic_struct("Invalid", "{ Space::Missing x; }"), 0);
     sireflect_fini();
 }

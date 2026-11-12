@@ -233,7 +233,7 @@ sireflect_parser_fail_at(sireflect_parser_t *parser, sireflect_token_t token, co
 
     parser->failed = true;
     if (parser->fail_fast) {
-        sireflect_assert(false, parser->message);
+        sireflect_require(false, parser->message);
     }
     sireflect_error_set(parser->message);
 }
@@ -263,7 +263,7 @@ static inline void sireflect_parser_unexpected(
 
     parser->failed = true;
     if (parser->fail_fast) {
-        sireflect_assert(false, parser->message);
+        sireflect_require(false, parser->message);
     }
     sireflect_error_set(parser->message);
 }
@@ -298,7 +298,14 @@ static inline void sireflect_parser_next(sireflect_parser_t *parser) {
 
     if (sireflect_is_ident_start(c)) {
         sireflect_parser_advance(parser);
-        while (sireflect_is_ident_char(src[parser->pos])) {
+        for (;;) {
+            while (sireflect_is_ident_char(src[parser->pos])) {
+                sireflect_parser_advance(parser);
+            }
+            if (src[parser->pos] != ':' || src[parser->pos + 1] != ':' ||
+                !sireflect_is_ident_start(src[parser->pos + 2]))
+                break;
+            sireflect_parser_advance(parser);
             sireflect_parser_advance(parser);
         }
 
@@ -411,7 +418,8 @@ sireflect_expect(sireflect_parser_t *parser, sireflect_token_kind_t kind, const 
 
 static inline sireflect_token_t sireflect_expect_field_name(sireflect_parser_t *parser) {
     sireflect_token_t token = parser->current;
-    if (token.kind != sireflect_token_ident || sireflect_token_is_qualifier(token)) {
+    if (token.kind != sireflect_token_ident || sireflect_token_is_qualifier(token) ||
+        memchr(token.start, ':', token.len)) {
         sireflect_parser_unexpected(parser, sireflect_token_ident, "field name");
         return token;
     }
@@ -717,7 +725,7 @@ static inline sireflect_handle_t sireflect_resolve_field_type(
         free(owned_name);
         parser->failed = true;
         if (parser->fail_fast) {
-            sireflect_assert(false, parser->message);
+            sireflect_require(false, parser->message);
         }
         sireflect_error_set(parser->message);
         return SIREFLECT_INVALID_HANDLE;

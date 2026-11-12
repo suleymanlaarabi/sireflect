@@ -38,8 +38,7 @@ typedef uint64_t sireflect_handle_t;
 /* Invalid type handle. */
 #define SIREFLECT_INVALID_HANDLE ((sireflect_handle_t)0)
 
-/* Reports a failed Sireflect debug assertion. */
-#ifndef NDEBUG
+/* Reports a failed contract check in every build configuration. */
 SIREFLECT_API void sireflect_assert_fail(
     const char *condition,
     const char *message,
@@ -48,9 +47,11 @@ SIREFLECT_API void sireflect_assert_fail(
     const char *function
 );
 
-#define sireflect_assert(condition, message)                                                       \
+#define sireflect_require(condition, message)                                                      \
     ((condition) ? (void)0                                                                         \
                  : sireflect_assert_fail(#condition, message, __FILE__, __LINE__, __func__))
+#ifndef NDEBUG
+#define sireflect_assert(condition, message) sireflect_require(condition, message)
 #define sireflect_indebug(...) __VA_ARGS__
 #else
 #define sireflect_assert(condition, message) ((void)0)
@@ -86,8 +87,20 @@ typedef enum {
     sireflect_kind_long_long,
     sireflect_kind_unsigned_long_long,
     sireflect_kind_function_pointer,
-    sireflect_kind_enum
+    sireflect_kind_enum,
+    sireflect_kind_vector
 } sireflect_kind_t;
+
+/* Owning, contiguous sequence. Zero initialization represents an empty vector.
+ * Elements have the vector type's reflected element layout. */
+typedef struct {
+    void *data;
+    size_t count;
+} sireflect_vector_t;
+
+/* Interns a vector type, or returns 0 for an invalid/zero-sized element type.
+ * Like other registration, this participates in the active transaction. */
+SIREFLECT_API sireflect_handle_t sireflect_vector_type(sireflect_handle_t element_type);
 
 /* Returns a stable string for a kind, or "unknown" for an invalid kind value.
  */
@@ -237,7 +250,8 @@ typedef enum {
     sireflect_category_array,
     sireflect_category_cstring,
     sireflect_category_pointer,
-    sireflect_category_function_pointer
+    sireflect_category_function_pointer,
+    sireflect_category_vector
 } sireflect_category_t;
 
 typedef enum {
@@ -321,6 +335,18 @@ SIREFLECT_API void sireflect_init(void);
 /* Releases one initialization reference and destroys metadata at the final release. */
 SIREFLECT_API void sireflect_fini(void);
 
+/* Isolated, append-only type registration on the calling thread. Existing
+ * metadata is immutable during preparation. Only one transaction may be active
+ * per thread; callers serialize commits with other registry writers. Newly
+ * registered handles must not escape until commit succeeds. */
+typedef struct sireflect_transaction_t sireflect_transaction_t;
+SIREFLECT_API sireflect_transaction_t *sireflect_transaction_begin(void);
+/* Savepoints cover registrations added in the active transaction. */
+SIREFLECT_API uint32_t sireflect_transaction_mark(const sireflect_transaction_t *transaction);
+SIREFLECT_API bool sireflect_transaction_rewind(sireflect_transaction_t *transaction, uint32_t mark);
+SIREFLECT_API bool sireflect_transaction_commit(sireflect_transaction_t *transaction);
+SIREFLECT_API void sireflect_transaction_abort(sireflect_transaction_t *transaction);
+
 /*
  * Returns the current recoverable error message, or NULL if there is no error.
  * The returned pointer is owned by Sireflect and remains valid until the next
@@ -355,6 +381,13 @@ SIREFLECT_API sireflect_handle_t sireflect_try_register_enum(const sireflect_enu
 SIREFLECT_API sireflect_handle_t sireflect_try_register_dynamic_struct(
     const char *name,
     const char *fields
+);
+
+/* Prepare a new definition under an existing struct name in the active
+ * registration transaction. Commit publishes the new name binding; old handles
+ * remain immutable until registry teardown for values using their exact layout. */
+SIREFLECT_API sireflect_handle_t sireflect_try_replace_dynamic_struct(
+    const char *name, const char *fields
 );
 
 /* Finds a type handle by name, or SIREFLECT_INVALID_HANDLE if missing. */

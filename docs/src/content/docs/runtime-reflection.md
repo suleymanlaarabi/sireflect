@@ -6,7 +6,7 @@ description: Walk types and values, classify types, and attach semantic metadata
 ## Walk a type graph
 
 `sireflect_walk_type(root, flags, visitor, user)` calls the visitor before each
-type's children. Struct fields and array element types are followed by default.
+type's children. Struct fields and array/vector element types are followed by default.
 Pointer targets are followed only with `SIREFLECT_WALK_FOLLOW_POINTERS`.
 Function pointer return types are included in the type graph. Enums and scalar
 types are leaves.
@@ -41,7 +41,7 @@ Both use the same traversal engine as the type walk. The value events are:
 | --- | --- |
 | `SIREFLECT_VALUE_ENTER_STRUCT` / `SIREFLECT_VALUE_LEAVE_STRUCT` | Surround a struct's fields. |
 | `SIREFLECT_VALUE_FIELD` | Direct pointer to the field, before its own visit. |
-| `SIREFLECT_VALUE_ENTER_ARRAY` / `SIREFLECT_VALUE_LEAVE_ARRAY` | Surround array elements. |
+| `SIREFLECT_VALUE_ENTER_ARRAY` / `SIREFLECT_VALUE_LEAVE_ARRAY` | Surround array or vector elements. |
 | `SIREFLECT_VALUE_ARRAY_ELEMENT` | Direct pointer to an element and its index. |
 | `SIREFLECT_VALUE_LEAF` | Scalar or enum value. |
 | `SIREFLECT_VALUE_POINTER` | Pointer storage, including NULL and function pointers; never dereferenced. |
@@ -90,3 +90,39 @@ is freed. Individual metadata pointers last until the final `sireflect_fini`,
 while a view's `items` array can move when another key is added. Setters return
 `false` and set `sireflect_error()` for invalid input or allocation failure.
 No metadata pointers remain valid after the final release.
+
+## Register types transactionally
+
+Initialize Sireflect, then call `sireflect_transaction_begin()` to prepare type
+registrations on the calling thread. Existing types remain readable, but their
+metadata cannot be modified while the transaction is active. A thread can have
+one active transaction; callers must serialize commits with other registry writers.
+
+`sireflect_transaction_mark()` returns a savepoint for staged registrations.
+`sireflect_transaction_rewind()` discards registrations after that savepoint.
+Rewound or aborted handles must not be used. Newly registered handles must not escape until
+`sireflect_transaction_commit()` succeeds. A successful commit publishes the
+registrations and consumes the transaction. A failed commit leaves it active;
+call `sireflect_transaction_abort()` to discard it and release its storage.
+
+Within a transaction, `sireflect_try_replace_dynamic_struct(name, fields)` prepares
+a new definition of an existing struct. Commit updates the name lookup. Previous
+handles and metadata retain their exact layouts until final registry teardown;
+the caller remains responsible for the storage of values using those layouts.
+
+## Reflect runtime-sized vectors
+
+`sireflect_vector_type(element_type)` registers or finds a vector type for a valid,
+nonzero-sized element type. Its kind is `sireflect_kind_vector`, its category is
+`sireflect_category_vector`, and `element_type` identifies each element's layout.
+Use `sireflect_type_name()` on the returned handle when composing a dynamic
+struct declaration; the generated name is a valid reflected type identifier.
+
+Values use `sireflect_vector_t`, containing `void *data` and `size_t count`.
+Zero initialization represents an empty vector. The caller owns the contiguous
+element buffer and any nested allocations; reflection walks do not free them.
+Value walks emit the array enter/element/leave events for the current elements.
+Nonempty vectors require a data pointer and a count that fits the element size.
+
+Registered qualified type names such as `Space::Position` are also accepted in
+field declarations. Field names themselves must remain unqualified identifiers.

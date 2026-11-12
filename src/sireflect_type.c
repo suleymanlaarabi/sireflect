@@ -45,6 +45,8 @@ const char *sireflect_kind_name(sireflect_kind_t kind) {
         return "struct";
     case sireflect_kind_array:
         return "array";
+    case sireflect_kind_vector:
+        return "vector";
     case sireflect_kind_signed_char:
         return "signed char";
     case sireflect_kind_unsigned_char:
@@ -101,6 +103,7 @@ bool sireflect_is_numeric(sireflect_kind_t kind) {
     case sireflect_kind_array:
     case sireflect_kind_function_pointer:
     case sireflect_kind_enum:
+    case sireflect_kind_vector:
         return false;
     }
 
@@ -137,7 +140,7 @@ const char *sireflect_type_name(sireflect_handle_t ref) {
 bool sireflect_type_is_struct(const sireflect_type_info_t *info) {
     sireflect_error_clear();
 
-    sireflect_assert(info != NULL, "type metadata must not be NULL");
+    sireflect_require(info != NULL, "type metadata must not be NULL");
     return info->kind == sireflect_kind_struct;
 }
 

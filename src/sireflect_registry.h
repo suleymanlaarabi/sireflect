@@ -24,6 +24,7 @@ struct sireflect_registry_t {
 
 sireflect_registry_t *sireflect_registry_current(void);
 bool sireflect_registry_is_initialized(void);
+bool sireflect_registry_in_transaction(void);
 
 sireflect_handle_t sireflect_registry_add_type(
     const char *name,
@@ -56,6 +57,7 @@ sireflect_type_info_t *sireflect_registry_type_at(sireflect_handle_t handle);
 const sireflect_type_info_t *sireflect_registry_const_type_at(sireflect_handle_t handle);
 sireflect_type_entry_t *sireflect_registry_entry_at(sireflect_handle_t handle);
 void sireflect_registry_rollback(size_t count);
+bool sireflect_registry_type_is_writable(sireflect_handle_t handle);
 bool sireflect_registry_finish_struct(sireflect_handle_t handle,
     sireflect_field_info_t *fields, size_t field_count, size_t size, size_t align);
 

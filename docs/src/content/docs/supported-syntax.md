@@ -157,7 +157,8 @@ long double value;
 int bits : 3;
 ```
 
-Unsupported syntax is a debug assertion failure. Sireflect does this to avoid
+Unsupported syntax aborts strict registration in every build configuration.
+Use the `sireflect_try_register_*` APIs for recoverable errors. This avoids
 accepting declarations that would produce incomplete or incorrect metadata.
 
 ## Layout rules

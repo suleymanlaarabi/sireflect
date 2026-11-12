@@ -14,12 +14,14 @@ compiler plugin or an external code generator.
   `unsigned int` and `long long`.
 - Fixed-size arrays such as `float values[4]`, `Position points[8]`,
   `Position *items[8]`, and `f32 matrix[4][4]`.
+- Runtime-sized vectors with reflected element layouts and value traversal.
+- Transactional registration, savepoints, and atomic dynamic schema replacement.
 - Field metadata with name, type handle, byte offset, size, alignment, and
   leading `const` / `volatile` qualifiers.
 - Recursive type and value visitors, category helpers, array element access,
   and owned typed annotations for types and fields.
 - Typed self pointers such as `Node *next`, with cycle-safe type traversal.
-- Strict registration with debug diagnostics, plus recoverable registration
+- Strict syntax checks in debug and release builds, plus recoverable registration
   through `sireflect_try_register_struct` and `sireflect_error`.
 
 ```c
@@ -86,9 +88,9 @@ you need a raw, untyped pointer field.
 Function-pointer fields use `sireflect_kind_function_pointer`; their `element_type`
 stores the registered return type. Empty parameter lists are currently supported.
 
-Unsupported syntax fails during strict registration with a debug assertion. Use
+Unsupported syntax aborts during strict registration in every build configuration. Use
 `sireflect_try_register_struct` when invalid reflected source should return
-`SIREFLECT_INVALID_HANDLE` instead of aborting in debug builds.
+`SIREFLECT_INVALID_HANDLE` instead of aborting.
 After a recoverable failure, call `sireflect_error()` to inspect the current
 library-owned error string. The pointer remains valid until the next public
 `sireflect_*` call except `sireflect_error()`, or until the final

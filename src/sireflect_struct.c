@@ -127,3 +127,18 @@ sireflect_handle_t sireflect_try_register_dynamic_struct(
 
     return sireflect_register_new_struct(name, fields, 0, 1, false, false);
 }
+
+sireflect_handle_t sireflect_try_replace_dynamic_struct(const char *name, const char *fields) {
+    sireflect_error_clear();
+    if (!sireflect_registry_is_initialized() || !sireflect_registry_in_transaction() ||
+        !name || !fields) {
+        sireflect_error_set("struct replacement requires an active registration transaction");
+        return SIREFLECT_INVALID_HANDLE;
+    }
+    sireflect_handle_t existing = sireflect_type_by_name(name);
+    if (!existing || !sireflect_type_is_struct(sireflect_type_info(existing))) {
+        sireflect_error_set("struct replacement requires an existing struct");
+        return SIREFLECT_INVALID_HANDLE;
+    }
+    return sireflect_register_new_struct(name, fields, 0, 1, false, false);
+}

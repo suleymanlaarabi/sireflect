@@ -4,11 +4,15 @@
   "value": {
     "public": false,
     "clangd": true,
-    "use": ["sireflect"]
+    "use": [
+      "sireflect"
+    ]
   },
   "lang.c": {
     "c-standard": "c23",
-    "include": ["../src"]
+    "include": [
+      "../src"
+    ]
   },
   "test": {
     "testsuites": [
@@ -145,7 +149,12 @@
           "metadata_ownership_and_errors",
           "stable_handles_and_pointers",
           "recursive_registration_rollback",
-          "depth_limit"
+          "depth_limit",
+          "registration_transactions",
+          "registration_savepoints",
+          "transactional_schema_replacement",
+          "qualified_type_names",
+          "vector_types_and_walk"
         ]
       },
       {

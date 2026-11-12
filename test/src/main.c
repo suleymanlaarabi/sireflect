@@ -107,6 +107,11 @@ void runtime_metadata_ownership_and_errors(void);
 void runtime_stable_handles_and_pointers(void);
 void runtime_recursive_registration_rollback(void);
 void runtime_depth_limit(void);
+void runtime_registration_transactions(void);
+void runtime_registration_savepoints(void);
+void runtime_transactional_schema_replacement(void);
+void runtime_qualified_type_names(void);
+void runtime_vector_types_and_walk(void);
 
 // Testsuite 'lifecycle'
 void lifecycle_nested_init_fini(void);
@@ -450,6 +455,26 @@ bake_test_case runtime_testcases[] = {
     {
         "depth_limit",
         runtime_depth_limit
+    },
+    {
+        "registration_transactions",
+        runtime_registration_transactions
+    },
+    {
+        "registration_savepoints",
+        runtime_registration_savepoints
+    },
+    {
+        "transactional_schema_replacement",
+        runtime_transactional_schema_replacement
+    },
+    {
+        "qualified_type_names",
+        runtime_qualified_type_names
+    },
+    {
+        "vector_types_and_walk",
+        runtime_vector_types_and_walk
     }
 };
 
@@ -551,7 +576,7 @@ static bake_test_suite suites[] = {
         "runtime",
         NULL,
         NULL,
-        10,
+        15,
         runtime_testcases
     },
     {

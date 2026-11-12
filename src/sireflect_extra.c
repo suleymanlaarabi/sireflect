@@ -15,6 +15,7 @@ static sireflect_category_t category_of(sireflect_handle_t type) {
     case sireflect_kind_enum: return sireflect_category_enum;
     case sireflect_kind_struct: return sireflect_category_struct;
     case sireflect_kind_array: return sireflect_category_array;
+    case sireflect_kind_vector: return sireflect_category_vector;
     case sireflect_kind_function_pointer: return sireflect_category_function_pointer;
     case sireflect_kind_ptr: return sireflect_category_pointer;
     case sireflect_kind_pointer: {
@@ -181,6 +182,9 @@ static sireflect_meta_store_t *field_store(sireflect_handle_t type, const char *
 
 bool sireflect_type_set_meta(sireflect_handle_t type, const sireflect_meta_t *meta) {
     sireflect_error_clear();
+    if (!sireflect_registry_type_is_writable(type)) {
+        sireflect_error_set("existing metadata is immutable during a transaction"); return false;
+    }
     sireflect_meta_store_t *store = type_store(type);
     if (store == NULL) { sireflect_error_set("invalid metadata type"); return false; }
     return set_meta(store, meta);
@@ -201,6 +205,9 @@ const sireflect_metas_t *sireflect_type_metas(sireflect_handle_t type) {
 bool sireflect_field_set_meta(sireflect_handle_t type, const char *field,
     const sireflect_meta_t *meta) {
     sireflect_error_clear();
+    if (!sireflect_registry_type_is_writable(type)) {
+        sireflect_error_set("existing metadata is immutable during a transaction"); return false;
+    }
     sireflect_meta_store_t *store = field_store(type, field);
     if (store == NULL) { sireflect_error_set("unknown metadata field or type"); return false; }
     return set_meta(store, meta);

@@ -70,7 +70,8 @@ static bool walk_node(walk_state_t *state, sireflect_handle_t type,
     } else {
         sireflect_value_event_t event = SIREFLECT_VALUE_LEAF;
         if (info->kind == sireflect_kind_struct) event = SIREFLECT_VALUE_ENTER_STRUCT;
-        else if (info->kind == sireflect_kind_array) event = SIREFLECT_VALUE_ENTER_ARRAY;
+        else if (info->kind == sireflect_kind_array || info->kind == sireflect_kind_vector)
+            event = SIREFLECT_VALUE_ENTER_ARRAY;
         else if (info->kind == sireflect_kind_pointer || info->kind == sireflect_kind_ptr ||
             info->kind == sireflect_kind_function_pointer) event = SIREFLECT_VALUE_POINTER;
         else event = SIREFLECT_VALUE_LEAF;
@@ -105,22 +106,36 @@ static bool walk_node(walk_state_t *state, sireflect_handle_t type,
         if (state->mode != walk_types &&
             !emit_value(state, SIREFLECT_VALUE_LEAVE_STRUCT, type, info, field,
                 ptr, mut_ptr, index, depth)) return false;
-    } else if (info->kind == sireflect_kind_array) {
+    } else if (info->kind == sireflect_kind_array || info->kind == sireflect_kind_vector) {
+        bool vector = info->kind == sireflect_kind_vector;
         sireflect_type_entry_t *element = sireflect_registry_entry_at(info->element_type);
-        if (element == NULL || element->info.size == 0 || info->element_count == 0 ||
-            info->element_count > info->size / element->info.size) {
+        if (element == NULL || element->info.size == 0 || (!vector &&
+            (info->element_count == 0 || info->element_count > info->size / element->info.size))) {
             sireflect_error_set("invalid reflected array metadata");
             return false;
         }
         size_t count = state->mode == walk_types ? 1 : info->element_count;
+        const void *sequence_data = ptr;
+        void *sequence_mut_data = mut_ptr;
+        if (vector && state->mode != walk_types) {
+            const sireflect_vector_t *sequence = ptr ? ptr : mut_ptr;
+            if (!sequence || (sequence->count && !sequence->data) ||
+                sequence->count > SIZE_MAX / element->info.size) {
+                sireflect_error_set("invalid reflected vector storage");
+                return false;
+            }
+            count = sequence->count;
+            sequence_data = sequence->data;
+            sequence_mut_data = state->mode == walk_mut_values ? sequence->data : NULL;
+        }
         for (size_t i = 0; i < count; i++) {
             if (depth == SIREFLECT_WALK_MAX_DEPTH) {
                 sireflect_error_set("reflection walk depth limit exceeded");
                 return false;
             }
             size_t offset = i * element->info.size;
-            const void *child_ptr = ptr ? (const unsigned char *)ptr + offset : NULL;
-            void *child_mut_ptr = mut_ptr ? (unsigned char *)mut_ptr + offset : NULL;
+            const void *child_ptr = sequence_data ? (const unsigned char *)sequence_data + offset : NULL;
+            void *child_mut_ptr = sequence_mut_data ? (unsigned char *)sequence_mut_data + offset : NULL;
             if (state->mode != walk_types &&
                 !emit_value(state, SIREFLECT_VALUE_ARRAY_ELEMENT, info->element_type,
                     &element->info, NULL, child_ptr, child_mut_ptr, i, depth + 1)) return false;
